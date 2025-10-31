@@ -195,102 +195,47 @@ const App = () => {
         if (insertError) throw insertError;
       }
 
-      // 3. Buscar telefone do barbeiro no Supabase após sucesso na inserção/atualização
-      const { data: barberData, error: barberError } = await supabase
-        .from('barbeiros')
-        .select('telefone')
-        .eq('id', selectedBarber.id)
-        .single();
+     // ======= PATCH FINAL REDIRECIONAMENTO WHATSAPP =======
+setLoading(true);
+setError(null);
+setSuccess('Redirecionando para o WhatsApp do barbeiro...');
 
-      if (barberError || !barberData || !barberData.telefone) {
-        console.error('Erro ao buscar telefone do barbeiro:', barberError);
-        alert('Erro ao abrir o WhatsApp do barbeiro. Verifique o número cadastrado.');
-        resetForm();
-        setView('home');
-        return;
+// Redirecionamento garantido com fallback
+setTimeout(() => {
+  try {
+    const telefoneClean = barberData.telefone.replace(/\D/g, '');
+    const servicosTexto = selectedServices.map(s => s.name).join(', ');
+    const [year, month, day] = selectedDate.split('-');
+    const dataFormatada = new Date(year, month - 1, day).toLocaleDateString('pt-BR');
+    const mensagem = `Olá, acabei de confirmar meu agendamento para o dia ${dataFormatada} às ${selectedTime} com você com os serviços ${servicosTexto}.`;
+    const whatsappUrl = `https://wa.me/55${telefoneClean}?text=${encodeURIComponent(mensagem)}`;
+
+    console.log('✅ Redirecionando para WhatsApp:', whatsappUrl);
+    alert('Redirecionando para o WhatsApp...');
+
+    // Método principal
+    window.location.href = whatsappUrl;
+
+    // Fallback em nova aba
+    setTimeout(() => {
+      if (!document.hidden) {
+        window.open(whatsappUrl, '_blank');
       }
+    }, 1000);
+  } catch (redirectError) {
+    console.error('Erro ao redirecionar para WhatsApp:', redirectError);
+    alert('Não foi possível abrir o WhatsApp. Verifique o número.');
+  }
+}, 500);
 
-      // 4. Redirecionar para o WhatsApp do barbeiro com mensagem formatada
-      const barbeiroTelefone = barberData.telefone;
-      const servicosTexto = selectedServices.map(s => s.name).join(', ');
-      const [year, month, day] = selectedDate.split('-');
-      const dataFormatada = new Date(year, month - 1, day).toLocaleDateString('pt-BR');
-      const mensagem = `Olá, acabei de confirmar meu agendamento para o dia ${dataFormatada} às ${selectedTime} com você com os serviços ${servicosTexto}.`;
-      
-      // Limpar o telefone (remover caracteres especiais)
-      const telefoneClean = barbeiroTelefone.replace(/\D/g, '');
-      const whatsappUrl = `https://wa.me/55${telefoneClean}?text=${encodeURIComponent(mensagem)}`;
-      
-      console.log('Redirecionando para WhatsApp:', whatsappUrl);
-      console.log('Mensagem:', mensagem);
-      
-      // Usar window.open para melhor compatibilidade
-      window.open(whatsappUrl, '_blank');
-      resetForm();
-      setView('home');
-    } catch (err) {
-      console.error('Erro ao confirmar agendamento:', err);
-      setError('Erro ao confirmar agendamento. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
+// Limpeza de estado
+setTimeout(() => {
+  resetForm();
+  setView('home');
+  setLoading(false);
+}, 1500);
 
-  const resetForm = () => {
-    setSelectedBarber(null);
-    setSelectedServices([]);
-    setSelectedDate('');
-    setSelectedTime('');
-    setClientName('');
-    setAvailableTimes([]);
-  };
 
-  const handleAdminLogin = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    if (adminUsername === ADMIN_USERNAME && adminPassword === ADMIN_PASSWORD) {
-      setAdminLoggedIn(true);
-      setView('adminDashboard');
-      fetchAdminAppointments();
-    } else {
-      setError('Credenciais inválidas.');
-    }
-    setLoading(false);
-  };
-
-  const handleAdminLogout = () => {
-    setAdminLoggedIn(false);
-    setAdminUsername('');
-    setAdminPassword('');
-    setView('home');
-  };
-
-  const fetchAdminAppointments = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const { data, error } = await supabase
-        .from('horarios')
-        .select(`
-          id,
-          data,
-          hora,
-          ocupado,
-          barbeiros (nome),
-          clientes (nome)
-        `)
-        .order('data', { ascending: true })
-        .order('hora', { ascending: true });
-
-      if (error) throw error;
-      setAdminAppointments(data);
-    } catch (err) {
-      console.error('Erro ao buscar agendamentos do admin:', err);
-      setError('Erro ao carregar agendamentos.');
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleToggleSlot = async (slotId, currentStatus) => {
