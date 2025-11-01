@@ -159,52 +159,38 @@ const App = () => {
       }
 
       // Buscar telefone do barbeiro
-      const { data: barberData } = await supabase
-        .from('barbeiros')
-        .select('telefone')
-        .eq('id', selectedBarber.id)
-        .single();
+const { data: barberData, error: barberError } = await supabase
+  .from('barbeiros')
+  .select('telefone, nome')
+  .eq('id', selectedBarber.id)
+  .single();
 
-      const telefoneClean = barberData.telefone.replace(/\D/g, '');
-      const servicosTexto = selectedServices.map(s => s.name).join(', ');
-      const dataFormatada = new Date(selectedDate).toLocaleDateString('pt-BR');
-      const mensagem = `Olá, acabei de confirmar meu agendamento para o dia ${dataFormatada} às ${selectedTime} com os serviços ${servicosTexto}.`;
-      const whatsappUrl = `https://wa.me/55${telefoneClean}?text=${encodeURIComponent(mensagem)}`;
+if (barberError || !barberData) {
+  console.error('Erro ao buscar telefone do barbeiro:', barberError);
+  alert('Erro ao obter o telefone do barbeiro.');
+  return;
+}
 
-      alert('Redirecionando para o WhatsApp...');
-      window.location.href = whatsappUrl;
-      resetForm();
-      setView('home');
-    } catch (err) {
-      console.error('Erro ao confirmar agendamento:', err);
-      setError('Erro ao confirmar agendamento. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
+const telefoneClean = barberData.telefone.replace(/\D/g, '');
+const servicosTexto = selectedServices.map(s => s.name).join(', ');
+const dataFormatada = new Date(selectedDate).toLocaleDateString('pt-BR');
 
-  const handleToggleSlot = async (slotId, currentStatus) => {
-    setLoading(true);
-    setError('');
-    try {
-      const newStatus = !currentStatus;
-      const updateData = { ocupado: newStatus };
-      if (!newStatus) updateData.cliente_id = null;
+const mensagem = `Olá ${barberData.nome}! Acabei de confirmar meu agendamento para o dia ${dataFormatada} às ${selectedTime} com os serviços: ${servicosTexto}.`;
 
-      const { error } = await supabase
-        .from('horarios')
-        .update(updateData)
-        .eq('id', slotId);
+const whatsappUrl = `https://wa.me/55${telefoneClean}?text=${encodeURIComponent(mensagem)}`;
 
-      if (error) throw error;
-      fetchAdminAppointments();
-    } catch (err) {
-      console.error('Erro ao atualizar slot:', err);
-      setError('Erro ao atualizar status do horário.');
-    } finally {
-      setLoading(false);
-    }
-  };
+// 🔥 Redirecionamento garantido
+setTimeout(() => {
+  try {
+    window.open(whatsappUrl, '_blank');
+  } catch (redirectError) {
+    console.error('Erro ao abrir WhatsApp:', redirectError);
+    alert('Não foi possível abrir o WhatsApp. Verifique o número.');
+  }
+}, 500);
+
+resetForm();
+setView('home');
 
   // Simulação de funções admin
   const handleAdminLogin = (e) => {
