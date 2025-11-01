@@ -108,95 +108,47 @@ const App = () => {
 
   const calculateTotal = () => selectedServices.reduce((sum, s) => sum + s.price, 0);
 
-  // === CONFIRMAR AGENDAMENTO ===
-  const handleConfirmAppointment = async () => {
-    setLoading(true);
-    try {
-      let client_id;
-      const { data: existingClient } = await supabase
-        .from('clientes')
-        .select('id')
-        .eq('nome', clientName)
-        .maybeSingle();
+  // Confirma agendamento no Supabase
+const { data: result, error } = await supabase
+  .rpc('book_slot', {
+    _barbeiro_id: barberId,
+    _data: date,
+    _hora: selected,
+    _cliente_nome: clienteNome
+  });
 
-      if (existingClient) {
-        client_id = existingClient.id;
-      } else {
-        const { data: newClient } = await supabase
-          .from('clientes')
-          .insert([{ nome: clientName }])
-          .select('id')
-          .single();
-        client_id = newClient.id;
-      }
-
-      const { data: existingSlot } = await supabase
-        .from('horarios')
-        .select('id')
-        .eq('barbeiro_id', selectedBarber.id)
-        .eq('data', selectedDate)
-        .eq('hora', `${selectedTime}:00`)
-        .maybeSingle();
-
-      if (existingSlot) {
-        await supabase.from('horarios').update({ ocupado: true, cliente_id: client_id }).eq('id', existingSlot.id);
-      } else {
-        await supabase.from('horarios').insert([{
-          barbeiro_id: selectedBarber.id,
-          data: selectedDate,
-          hora: `${selectedTime}:00`,
-          ocupado: true,
-          cliente_id: client_id
-        }]);
-      }
-
-      // Buscar telefone do barbeiro
-const { data: barberData, error: barberError } = await supabase
-  .from('barbeiros')
-  .select('telefone, nome')
-  .eq('id', selectedBarber.id)
-  .single();
-
-if (barberError || !barberData?.telefone) {
-  console.error('Erro ao buscar telefone do barbeiro:', barberError);
-  alert('Erro ao abrir o WhatsApp do barbeiro. Verifique o número cadastrado.');
+if (error) {
+  alert('Erro ao confirmar agendamento: ' + error.message);
   return;
 }
 
-// Montar mensagem de confirmação
-const telefoneClean = barberData.telefone.replace(/\D/g, '');
-const servicosTexto = selectedServices.map((s) => s.name).join(', ');
-const dataFormatada = new Date(selectedDate).toLocaleDateString('pt-BR');
-const mensagem = `Olá ${barberData.nome}! Acabei de confirmar meu agendamento para o dia ${dataFormatada} às ${selectedTime} com os serviços: ${servicosTexto}.`;
+// Verifica se o Supabase confirmou
+if (result && result[0]?.success) {
+  // 🔎 Busca o telefone do barbeiro no banco
+  const { data: barbeiroData, error: barbeiroError } = await supabase
+    .from('barbeiros')
+    .select('telefone, nome')
+    .eq('id', barberId)
+    .single();
 
-const whatsappUrl = `https://wa.me/55${telefoneClean}?text=${encodeURIComponent(mensagem)}`;
+  if (barbeiroError || !barbeiroData?.telefone) {
+    alert('Erro ao abrir o WhatsApp do barbeiro. Verifique o número cadastrado.');
+    return;
+  }
 
-// Tentativa segura de redirecionamento
-try {
-  // método principal
-  window.location.assign(whatsappUrl);
+  // 🧹 Limpa caracteres e monta o link
+  const telefoneLimpo = barbeiroData.telefone.replace(/\D/g, '');
+  const mensagem = `Olá, acabei de confirmar meu agendamento para o dia ${date} às ${selected}.`;
+  const url = `https://wa.me/55${telefoneLimpo}?text=${encodeURIComponent(mensagem)}`;
 
-  // fallback (caso navegador bloqueie)
-  setTimeout(() => {
-    window.open(whatsappUrl, '_blank');
-  }, 800);
-} catch (redirectError) {
-  console.error('Erro ao redirecionar para WhatsApp:', redirectError);
-  alert('Não foi possível abrir o WhatsApp. Verifique o número.');
+  // 🚀 Redirecionamento automático
+  window.location.href = url;
+
+} else {
+  alert(result?.[0]?.message || 'Falha ao confirmar agendamento.');
 }
 
-resetForm();
-setView('home');
-    resetForm();
-    setView('home');
-  } catch (err) {
-    console.error('Erro ao confirmar agendamento:', err);
-    alert('Ocorreu um erro ao confirmar o agendamento.');
-  } finally {
-    setLoading(false);
-  }
-};
-
+ 
 
   // === FUNÇÕES ADMIN ===
   const handleAdminLogin = (e) => {
