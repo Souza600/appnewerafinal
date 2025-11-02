@@ -1,7 +1,9 @@
  import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import './App.css';
-import { FaCut, FaUserCircle, FaSignInAlt, FaSignOutAlt, FaCog, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import {
+  FaCut, FaUserCircle, FaSignInAlt, FaSignOutAlt, FaCog, FaCheckCircle
+} from 'react-icons/fa';
 import { MdOutlineContentCut } from "react-icons/md";
 import { staticServices } from './services.js';
 
@@ -10,6 +12,7 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const App = () => {
+  // === ESTADOS PRINCIPAIS ===
   const [view, setView] = useState('home');
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [selectedServices, setSelectedServices] = useState([]);
@@ -46,7 +49,9 @@ const App = () => {
     const fetchInitialData = async () => {
       setLoading(true);
       try {
-        const { data: barbersData, error: barbersError } = await supabase.from('barbeiros').select('*');
+        const { data: barbersData, error: barbersError } = await supabase
+          .from('barbeiros')
+          .select('*');
         if (barbersError) throw barbersError;
         setBarbers(barbersData);
         setServices(staticServices);
@@ -108,47 +113,75 @@ const App = () => {
 
   const calculateTotal = () => selectedServices.reduce((sum, s) => sum + s.price, 0);
 
-  // Confirma agendamento no Supabase
-const { data: result, error } = await supabase
-  .rpc('book_slot', {
-    _barbeiro_id: barberId,
-    _data: date,
-    _hora: selected,
-    _cliente_nome: clienteNome
-  });
+  // === CONFIRMAR AGENDAMENTO E REDIRECIONAR PARA WHATSAPP ===
+  const handleConfirmAppointment = async () => {
+    if (!selectedBarber) return alert("Selecione um barbeiro.");
+    if (!selectedDate) return alert("Escolha uma data.");
+    if (!selectedTime) return alert("Escolha um horário.");
+    if (!clientName || clientName.trim().length < 2)
+      return alert("Informe seu nome corretamente.");
 
-if (error) {
-  alert('Erro ao confirmar agendamento: ' + error.message);
-  return;
-}
+    setLoading(true);
+    try {
+      const horaParaRpc =
+        selectedTime.includes(":") && selectedTime.length === 5
+          ? `${selectedTime}:00`
+          : selectedTime;
 
-// Verifica se o Supabase confirmou
-if (result && result[0]?.success) {
-  // 🔎 Busca o telefone do barbeiro no banco
-  const { data: barbeiroData, error: barbeiroError } = await supabase
-    .from('barbeiros')
-    .select('telefone, nome')
-    .eq('id', barberId)
-    .single();
+      const { data: result, error: rpcError } = await supabase.rpc("book_slot", {
+        _barbeiro_id: selectedBarber.id,
+        _data: selectedDate,
+        _hora: horaParaRpc,
+        _cliente_nome: clientName.trim(),
+      });
 
-  if (barbeiroError || !barbeiroData?.telefone) {
-    alert('Erro ao abrir o WhatsApp do barbeiro. Verifique o número cadastrado.');
-    return;
-  }
+      if (rpcError) {
+        console.error("Erro na RPC:", rpcError);
+        alert("Erro ao confirmar agendamento: " + rpcError.message);
+        return;
+      }
 
-  // 🧹 Limpa caracteres e monta o link
-  const telefoneLimpo = barbeiroData.telefone.replace(/\D/g, '');
-  const mensagem = `Olá, acabei de confirmar meu agendamento para o dia ${date} às ${selected}.`;
-  const url = `https://wa.me/55${telefoneLimpo}?text=${encodeURIComponent(mensagem)}`;
+      const rpcResult = Array.isArray(result) ? result[0] : result;
+      if (!rpcResult || !rpcResult.success) {
+        alert(rpcResult?.message || "Falha ao confirmar agendamento.");
+        return;
+      }
 
-  // 🚀 Redirecionamento automático
-  window.location.href = url;
+      const { data: barbeiroData, error: barberErr } = await supabase
+        .from("barbeiros")
+        .select("telefone, nome")
+        .eq("id", selectedBarber.id)
+        .single();
 
-} else {
-  alert(result?.[0]?.message || 'Falha ao confirmar agendamento.');
-}
+      if (barberErr) {
+        console.error("Erro ao buscar barbeiro:", barberErr);
+        alert("Agendamento confirmado, mas não foi possível abrir o WhatsApp.");
+        return;
+      }
 
- 
+      const rawPhone = (barbeiroData?.telefone || "").toString().trim();
+      if (!rawPhone) {
+        alert("Agendamento confirmado, mas o telefone do barbeiro não está cadastrado.");
+        return;
+      }
+
+      let tel = rawPhone.replace(/\D/g, "");
+      if (!tel.startsWith("55")) tel = "55" + tel;
+
+      const horaExibicao =
+        selectedTime.length === 5 ? selectedTime : selectedTime.slice(0, 5);
+      const mensagem = `Olá, acabei de confirmar meu agendamento para o dia ${selectedDate} às ${horaExibicao}.`;
+      const waUrl = `https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}`;
+
+      console.log("Redirecionando para:", waUrl);
+      window.location.href = waUrl;
+    } catch (err) {
+      console.error("Erro inesperado:", err);
+      alert("Erro inesperado ao confirmar agendamento.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // === FUNÇÕES ADMIN ===
   const handleAdminLogin = (e) => {
@@ -197,165 +230,149 @@ if (result && result[0]?.success) {
         </button>
       </div>
     </div>
-  )
+  );
 
-  // Aqui viriam os outros renderizadores (barbers, services, schedule, adminLogin, adminDashboard)
-  // Mantenha exatamente como já estavam antes.
-const renderBarbers = () => (
-  <div className="min-h-screen bg-background text-text p-4 flex flex-col items-center">
-    <h2 className="text-2xl font-bold text-primary mb-6">Escolha seu Barbeiro</h2>
-    {loading && <div className="loading-spinner"></div>}
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md">
-      {barbers.map((barber) => (
-        <div
-          key={barber.id}
-          className="barber-card flex flex-col items-center p-4 cursor-pointer hover:scale-105 transition-transform"
-          onClick={() => {
-            setSelectedBarber(barber);
-            setView('services');
-          }}
-        >
-          <FaUserCircle className="text-primary text-5xl mb-2" />
-          <h3 className="text-xl font-semibold mb-1">{barber.nome}</h3>
-        </div>
-      ))}
-    </div>
-    <button onClick={() => setView('home')} className="button button-outline mt-6 w-full max-w-xs">
-      Voltar
-    </button>
-  </div>
-);
- const renderServices = () => (
-  <div className="min-h-screen bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 text-white p-4 flex flex-col items-center">
-    <h2 className="text-3xl font-bold text-primary mb-6 text-center">
-      Escolha os Serviços
-    </h2>
+  // === Outras telas mantidas ===
+  // (barbers, services, schedule)
 
-    {loading && <div className="loading-spinner"></div>}
-
-    <div className="grid grid-cols-2 gap-4 w-full max-w-2xl mb-8">
-      {services.map((service) => {
-        const selected = selectedServices.some((s) => s.id === service.id);
-        return (
+  const renderBarbers = () => (
+    <div className="min-h-screen bg-background text-text p-4 flex flex-col items-center">
+      <h2 className="text-2xl font-bold text-primary mb-6">Escolha seu Barbeiro</h2>
+      {loading && <div className="loading-spinner"></div>}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md">
+        {barbers.map((barber) => (
           <div
-            key={service.id}
-            onClick={() => handleServiceSelect(service)}
-            className={`relative cursor-pointer p-6 rounded-2xl transition-all duration-200 transform hover:scale-105 ${
-              selected
-                ? 'bg-gradient-to-br from-amber-500 to-yellow-600 shadow-[0_0_20px_rgba(255,193,7,0.6)] scale-105'
-                : 'bg-zinc-800 hover:bg-zinc-700'
-            }`}
+            key={barber.id}
+            className="barber-card flex flex-col items-center p-4 cursor-pointer hover:scale-105 transition-transform"
+            onClick={() => {
+              setSelectedBarber(barber);
+              setView('services');
+            }}
           >
-            <MdOutlineContentCut className="text-4xl mb-3 text-white opacity-90" />
-            <h3 className="text-lg font-semibold mb-1">{service.name}</h3>
-            <p className="text-sm opacity-80">R$ {service.price.toFixed(2)}</p>
-            {selected && (
-              <FaCheckCircle className="absolute top-3 right-3 text-green-300 text-xl animate-pulse" />
-            )}
+            <FaUserCircle className="text-primary text-5xl mb-2" />
+            <h3 className="text-xl font-semibold mb-1">{barber.nome}</h3>
           </div>
-        );
-      })}
-    </div>
-
-    <div className="w-full max-w-md flex justify-between items-center mb-6 p-3 bg-zinc-800 rounded-xl shadow-lg">
-      <p className="text-lg font-semibold">
-        Total: <span className="text-amber-400">R$ {calculateTotal().toFixed(2)}</span>
-      </p>
-      <button
-        onClick={() => setView('schedule')}
-        className={`px-6 py-3 rounded-xl text-white font-semibold ${
-          selectedServices.length > 0
-            ? 'bg-amber-500 hover:bg-amber-600 transition-all'
-            : 'bg-gray-600 cursor-not-allowed'
-        }`}
-        disabled={selectedServices.length === 0}
-      >
-        Continuar
-      </button>
-    </div>
-
-    <button
-      onClick={() => setView('barbers')}
-      className="button button-outline mt-4 w-full max-w-xs"
-    >
-      Voltar
-    </button>
-  </div>
-);
-
-const renderSchedule = () => (
-  <div className="min-h-screen bg-background text-text p-4 flex flex-col items-center">
-    <h2 className="text-2xl font-bold text-primary mb-6">Agende seu Horário</h2>
-    {loading && <div className="loading-spinner"></div>}
-
-    <div className="w-full max-w-md mb-4">
-      <label htmlFor="date" className="label mb-2">Data:</label>
-      <input
-        type="date"
-        id="date"
-        className="input w-full"
-        value={selectedDate}
-        onChange={(e) => setSelectedDate(e.target.value)}
-        min={new Date().toISOString().split('T')[0]}
-      />
-    </div>
-
-    {selectedDate && (
-      <div className="w-full max-w-md mb-6">
-        <label className="label mb-2">Horários Disponíveis:</label>
-        {availableTimes.length === 0 && !loading && (
-          <p className="text-text-muted">Nenhum horário disponível para esta data.</p>
-        )}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {availableTimes.map((time) => (
-            <button
-              key={time}
-              className={`button ${selectedTime === time ? 'button-primary' : 'button-outline'}`}
-              onClick={() => setSelectedTime(time)}
-            >
-              {time}
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
-    )}
-
-    <div className="w-full max-w-md mb-4">
-      <label htmlFor="clientName" className="label mb-2">Seu Nome Completo:</label>
-      <input
-        type="text"
-        id="clientName"
-        className="input w-full"
-        value={clientName}
-        onChange={(e) => setClientName(e.target.value)}
-        placeholder="Nome e Sobrenome"
-      />
-    </div>
-
-    <div className="w-full max-w-md flex justify-between items-center mt-4">
-      <button onClick={() => setView('services')} className="button button-outline">
+      <button onClick={() => setView('home')} className="button button-outline mt-6 w-full max-w-xs">
         Voltar
       </button>
-      <button
-        onClick={handleConfirmAppointment}
-        className="button button-primary"
-        disabled={!selectedDate || !selectedTime || !clientName || loading}
-      >
-        Confirmar Agendamento
+    </div>
+  );
+
+  const renderServices = () => (
+    <div className="min-h-screen bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 text-white p-4 flex flex-col items-center">
+      <h2 className="text-3xl font-bold text-primary mb-6 text-center">Escolha os Serviços</h2>
+      {loading && <div className="loading-spinner"></div>}
+      <div className="grid grid-cols-2 gap-4 w-full max-w-2xl mb-8">
+        {services.map((service) => {
+          const selected = selectedServices.some((s) => s.id === service.id);
+          return (
+            <div
+              key={service.id}
+              onClick={() => handleServiceSelect(service)}
+              className={`relative cursor-pointer p-6 rounded-2xl transition-all duration-200 transform hover:scale-105 ${
+                selected
+                  ? 'bg-gradient-to-br from-amber-500 to-yellow-600 shadow-[0_0_20px_rgba(255,193,7,0.6)] scale-105'
+                  : 'bg-zinc-800 hover:bg-zinc-700'
+              }`}
+            >
+              <MdOutlineContentCut className="text-4xl mb-3 text-white opacity-90" />
+              <h3 className="text-lg font-semibold mb-1">{service.name}</h3>
+              <p className="text-sm opacity-80">R$ {service.price.toFixed(2)}</p>
+              {selected && <FaCheckCircle className="absolute top-3 right-3 text-green-300 text-xl animate-pulse" />}
+            </div>
+          );
+        })}
+      </div>
+      <div className="w-full max-w-md flex justify-between items-center mb-6 p-3 bg-zinc-800 rounded-xl shadow-lg">
+        <p className="text-lg font-semibold">
+          Total: <span className="text-amber-400">R$ {calculateTotal().toFixed(2)}</span>
+        </p>
+        <button
+          onClick={() => setView('schedule')}
+          className={`px-6 py-3 rounded-xl text-white font-semibold ${
+            selectedServices.length > 0
+              ? 'bg-amber-500 hover:bg-amber-600 transition-all'
+              : 'bg-gray-600 cursor-not-allowed'
+          }`}
+          disabled={selectedServices.length === 0}
+        >
+          Continuar
+        </button>
+      </div>
+      <button onClick={() => setView('barbers')} className="button button-outline mt-4 w-full max-w-xs">
+        Voltar
       </button>
     </div>
-  </div>
-);
+  );
+
+  const renderSchedule = () => (
+    <div className="min-h-screen bg-background text-text p-4 flex flex-col items-center">
+      <h2 className="text-2xl font-bold text-primary mb-6">Agende seu Horário</h2>
+      {loading && <div className="loading-spinner"></div>}
+      <div className="w-full max-w-md mb-4">
+        <label htmlFor="date" className="label mb-2">Data:</label>
+        <input
+          type="date"
+          id="date"
+          className="input w-full"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          min={new Date().toISOString().split('T')[0]}
+        />
+      </div>
+      {selectedDate && (
+        <div className="w-full max-w-md mb-6">
+          <label className="label mb-2">Horários Disponíveis:</label>
+          {availableTimes.length === 0 && !loading && (
+            <p className="text-text-muted">Nenhum horário disponível para esta data.</p>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {availableTimes.map((time) => (
+              <button
+                key={time}
+                className={`button ${selectedTime === time ? 'button-primary' : 'button-outline'}`}
+                onClick={() => setSelectedTime(time)}
+              >
+                {time}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="w-full max-w-md mb-4">
+        <label htmlFor="clientName" className="label mb-2">Seu Nome Completo:</label>
+        <input
+          type="text"
+          id="clientName"
+          className="input w-full"
+          value={clientName}
+          onChange={(e) => setClientName(e.target.value)}
+          placeholder="Nome e Sobrenome"
+        />
+      </div>
+      <div className="w-full max-w-md flex justify-between items-center mt-4">
+        <button onClick={() => setView('services')} className="button button-outline">
+          Voltar
+        </button>
+        <button
+          onClick={handleConfirmAppointment}
+          className="button button-primary"
+          disabled={!selectedDate || !selectedTime || !clientName || loading}
+        >
+          {loading ? 'Agendando...' : 'Confirmar Agendamento'}
+        </button>
+      </div>
+    </div>
+  );
 
   switch (view) {
     case 'barbers': return renderBarbers();
     case 'services': return renderServices();
     case 'schedule': return renderSchedule();
-    case 'adminLogin': return renderAdminLogin();
-    case 'adminDashboard': return renderAdminDashboard();
     default: return renderHome();
   }
-}
+};
 
 export default App;
-
