@@ -9,7 +9,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const App = () => {
+const App = async () => {
   const [view, setView] = useState('home');
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [selectedServices, setSelectedServices] = useState([]);
@@ -109,7 +109,7 @@ const App = () => {
   const calculateTotal = () => selectedServices.reduce((sum, s) => sum + s.price, 0);
 
   // Confirma agendamento no Supabase
-const { data: result, error } = await supabase
+const { data: result, error: supabaseError } = await supabase
   .rpc('book_slot', {
     _barbeiro_id: barberId,
     _data: date,
