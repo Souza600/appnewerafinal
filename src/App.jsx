@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // src/App.jsx
+=======
+ // src/App.jsx
+>>>>>>> 8924ce58 (fix: tailwind design premium working)
 import React, { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import "./App.css";
@@ -339,6 +343,7 @@ export default function App() {
   };
 
   // -------------------------
+<<<<<<< HEAD
   // Renderers - telas
   // -------------------------
   const renderHome = () => (
@@ -363,6 +368,42 @@ export default function App() {
         <button
           onClick={() => setView("barbers")}
           className="button button-primary mb-3 w-full"
+=======
+  /// -------------------------
+// Renderers - telas
+// -------------------------
+const renderHome = () => (
+  <div
+    className="home-hero"
+    style={{
+      backgroundImage: `url(${backgroundImages[currentBg]})`,
+      backgroundSize: "cover",
+      backgroundPosition: "center",
+    }}
+  >
+    <div className="home-overlay"></div>
+
+    <div className="home-content max-w-md w-full">
+      {/* Logo centralizada e menor */}
+      <img
+        src="/newera_logo_refined.png"
+        alt="Logo"
+        className="logo mx-auto"
+      />
+
+      <h1 className="text-4xl sm:text-5xl font-bold text-[var(--color-primary)] mb-3 drop-shadow-[0_2px_6px_rgba(251,191,36,0.4)]">
+        NewEra BarberSHOP
+      </h1>
+
+      <p className="text-lg sm:text-xl text-zinc-200 mb-8">
+        Tradição renovada em cada corte
+      </p>
+
+      <div className="flex flex-col gap-3 w-full">
+        <button
+          onClick={() => setView("barbers")}
+          className="button button-primary w-full"
+>>>>>>> 8924ce58 (fix: tailwind design premium working)
         >
           <FaCut className="mr-2" /> Agendar Horário
         </button>
@@ -375,7 +416,12 @@ export default function App() {
         </button>
       </div>
     </div>
+<<<<<<< HEAD
   );
+=======
+  </div>
+);
+>>>>>>> 8924ce58 (fix: tailwind design premium working)
 
   const renderBarbers = () => (
     <div className="min-h-screen bg-background text-text p-6 flex flex-col items-center">
@@ -640,3 +686,7 @@ export default function App() {
     </>
   );
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 8924ce58 (fix: tailwind design premium working)
