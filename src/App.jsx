@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+ import React, { useEffect, useState } from "react";
 import { supabase } from "./supabaseClient";
 import { staticServices } from "./services.js";
 import "./App.css";
@@ -89,11 +89,14 @@ export default function App() {
     setAdminAppointments(data || []);
     setLoading(false);
   };
+  
+  // ✅ CORREÇÃO: Liberar horário agora também limpa o cliente_id
   const handleReleaseSlot = async (horarioId) => {
-    await supabase.from("horarios").update({ ocupado: false }).eq("id", horarioId);
+    await supabase.from("horarios").update({ ocupado: false, cliente_id: null }).eq("id", horarioId);
     toast.success("Horário liberado");
     fetchAdminAppointments();
   };
+  
   const handleStartEditPrice = (service) => {
     setEditingServiceId(service.id);
     setEditingPriceValue((service.preco ?? service.price ?? 0).toString());
@@ -172,12 +175,16 @@ export default function App() {
         _cliente_nome: clientName.trim(),
       });
       if (error) throw error;
-      // WhatsApp
+      
+      // ✅ MENSAGEM WHATSAPP MELHORADA E FORMAL
       const numero = (selectedBarber.telefone || "").replace(/\D/g, "");
       const numeroMsg = numero.startsWith("55") ? numero : `55${numero}`;
       const servicos = selectedServices.map((s) => s.nome).join(", ");
       const valorFinal = calculateTotal().toFixed(2);
-      const msg = `Olá, agendei o serviço: ${servicos} (Total R$${valorFinal}) para ${selectedDate} às ${selectedTime}.`;
+      const dataFormatada = new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR");
+      
+      const msg = `Olá! 👋 Tudo bem?\n\nEstou confirmando o agendamento para o dia *${dataFormatada}* às *${selectedTime}* com o barbeiro *${selectedBarber.nome}*.\n\n💈 *Serviços solicitados:*\n${servicos}\n\n💰 *Valor total:* R$ ${valorFinal}\n\nAguardo a confirmação! 😊`;
+      
       const url = `https://wa.me/${numeroMsg}?text=${encodeURIComponent(msg)}`;
       toast.success("Agendamento confirmado! Redirecionando para o WhatsApp...");
       setTimeout(() => {
@@ -202,7 +209,8 @@ export default function App() {
     >
       <div className="home-overlay" />
       <div className="home-content max-w-md w-full">
-        <img src="/newera_logo_refined.jpg" alt="Logo" className="logo mx-auto" />
+        {/* ✅ CORREÇÃO: Logo com caminho correto */}
+        <img src="/newera_logo_refined.jpeg" alt="NewEra Logo" className="logo mx-auto" />
         <h1 className="text-4xl font-bold text-primary mb-2">NewEra BarberSHOP</h1>
         <p className="text-lg text-white mb-6">Tradição renovada em cada corte</p>
         <button
@@ -233,8 +241,10 @@ export default function App() {
             <div
               key={service.id}
               onClick={() => handleServiceSelect(service)}
-              className={`p-6 rounded-2xl cursor-pointer transition transform ${
-                selected ? "bg-amber-500 scale-105" : "bg-zinc-800 hover:bg-zinc-700"
+              className={`relative p-6 rounded-2xl cursor-pointer transition transform border-2 ${
+                selected 
+                  ? "bg-amber-500 border-amber-600 scale-105" 
+                  : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700 hover:border-zinc-600"
               }`}
             >
               <MdOutlineContentCut className="text-4xl mb-3 opacity-90" />
@@ -253,7 +263,7 @@ export default function App() {
           onClick={() => setView("barbers")}
           disabled={selectedServices.length === 0}
           className={`px-6 py-3 rounded-xl text-white font-semibold ${
-            selectedServices.length > 0 ? "bg-amber-500" : "bg-gray-600"
+            selectedServices.length > 0 ? "bg-amber-500 hover:bg-amber-600" : "bg-gray-600"
           }`}
         >
           Continuar
@@ -267,13 +277,20 @@ export default function App() {
 
   // TELA SELEÇÃO BARBEIRO
   const renderBarbers = () => (
-    <div className="min-h-screen bg-background text-text p-6 flex flex-col items-center">
-      <h2 className="text-2xl font-bold text-primary mb-6">Escolha seu Barbeiro</h2>
+    <div className="min-h-screen bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 text-white p-6 flex flex-col items-center">
+      <h2 className="text-3xl font-bold text-primary mb-6">Escolha seu Barbeiro</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
+        {/* ✅ CORREÇÃO: Cards dos barbeiros com borda e cor
+  // TELA SELEÇÃO BARBEIRO
+  const renderBarbers = () => (
+    <div className="min-h-screen bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 text-white p-6 flex flex-col items-center">
+      <h2 className="text-3xl font-bold text-primary mb-6">Escolha seu Barbeiro</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
+        {/* ✅ CORREÇÃO: Cards dos barbeiros com borda e cor igual aos serviços */}
         {barbers.map((barber) => (
           <div
             key={barber.id}
-            className="barber-card p-4 rounded-xl cursor-pointer hover:scale-105 transition"
+            className="p-6 rounded-2xl cursor-pointer hover:scale-105 transition border-2 bg-zinc-800 border-zinc-700 hover:bg-zinc-700 hover:border-zinc-600"
             onClick={() => {
               setSelectedBarber(barber);
               setView("schedule");
@@ -283,7 +300,7 @@ export default function App() {
               <FaUserCircle className="text-primary text-4xl" />
               <div>
                 <h3 className="text-lg font-semibold">{barber.nome}</h3>
-                {barber.telefone && <p className="text-sm opacity-80">{barber.telefone}</p>}
+                {/* ✅ CORREÇÃO: Telefone removido */}
               </div>
             </div>
           </div>
@@ -297,7 +314,7 @@ export default function App() {
 
   // TELA ESCOLHA DE HORÁRIO
   const renderSchedule = () => (
-    <div className="min-h-screen bg-background text-text p-6 flex flex-col items-center">
+    <div className="min-h-screen bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 text-white p-6 flex flex-col items-center">
       <h2 className="text-2xl font-bold mb-6">Agende seu Horário</h2>
       <div className="w-full max-w-md mb-4">
         <label className="label mb-2">Data:</label>
@@ -320,7 +337,7 @@ export default function App() {
                   selectedTime === time
                     ? "button-primary"
                     : ocupado
-                    ? "bg-red-500 text-white"
+                    ? "bg-red-500 text-white cursor-not-allowed"
                     : "button-outline"
                 }`}
                 disabled={ocupado}
@@ -359,9 +376,9 @@ export default function App() {
 
   // TELA ADMIN LOGIN
   const renderAdminLogin = () => (
-    <div className="min-h-screen p-6 flex items-center justify-center bg-background">
-      <div className="w-full max-w-md bg-zinc-900 p-6 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold mb-4">Login Administrativo</h2>
+    <div className="min-h-screen p-6 flex items-center justify-center bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900">
+      <div className="w-full max-w-md bg-zinc-900 p-6 rounded-xl shadow-lg border border-zinc-700">
+        <h2 className="text-2xl font-bold mb-4 text-white">Login Administrativo</h2>
         <form onSubmit={handleAdminLogin} className="flex flex-col gap-3">
           <input
             type="text"
@@ -388,7 +405,7 @@ export default function App() {
 
   // TELA ADMIN DASHBOARD
   const renderAdminDashboard = () => (
-    <div className="min-h-screen p-6 bg-background text-text">
+    <div className="min-h-screen p-6 bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 text-white">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Painel Administrativo</h2>
         <div className="flex items-center gap-3">
@@ -406,11 +423,11 @@ export default function App() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Agendamentos */}
-        <div className="bg-zinc-900 p-4 rounded-xl shadow">
+        <div className="bg-zinc-900 p-4 rounded-xl shadow border border-zinc-700">
           <h3 className="text-lg font-semibold mb-3">Agendamentos</h3>
           <div className="space-y-3 max-h-[60vh] overflow-auto">
             {filteredAdminAppointments.map((item) => (
-              <div key={item.id} className="p-3 bg-zinc-800 rounded flex items-center justify-between">
+              <div key={item.id} className="p-3 bg-zinc-800 rounded border border-zinc-700 flex items-center justify-between">
                 <div>
                   <div className="text-sm opacity-80">{item.barbeiros?.nome ?? "—"}</div>
                   <div className="font-medium">{item.clientes?.nome ?? "Cliente sem nome"}</div>
@@ -420,7 +437,7 @@ export default function App() {
                   <div className="text-sm">{item.ocupado ? <span className="text-amber-300">Ocupado</span> : <span className="text-green-300">Livre</span>}</div>
                   {item.ocupado && (
                     <div className="flex gap-2">
-                      <button onClick={() => handleReleaseSlot(item.id)} className="button button-small">Liberar</button>
+                      <button onClick={() => handleReleaseSlot(item.id)} className="px-3 py-1 bg-green-600 hover:bg-green-700 rounded text-sm">Liberar</button>
                     </div>
                   )}
                 </div>
@@ -429,11 +446,11 @@ export default function App() {
           </div>
         </div>
         {/* Serviços */}
-        <div className="bg-zinc-900 p-4 rounded-xl shadow">
+        <div className="bg-zinc-900 p-4 rounded-xl shadow border border-zinc-700">
           <h3 className="text-lg font-semibold mb-3">Serviços (Editar Preços)</h3>
           <div className="space-y-3">
             {services.map((s) => (
-              <div key={s.id} className="p-3 bg-zinc-800 rounded flex items-center justify-between">
+              <div key={s.id} className="p-3 bg-zinc-800 rounded border border-zinc-700 flex items-center justify-between">
                 <div>
                   <div className="font-medium">{s.nome}</div>
                   <div className="text-sm opacity-70">R$ {(s.preco ?? s.price ?? 0).toFixed(2)}</div>
@@ -449,12 +466,12 @@ export default function App() {
                         min="0"
                         step="0.01"
                       />
-                      <button onClick={() => handleSaveServicePrice(s.id)} className="button button-primary">Salvar</button>
-                      <button onClick={handleCancelEditPrice} className="button button-outline">Cancelar</button>
+                      <button onClick={() => handleSaveServicePrice(s.id)} className="px-3 py-1 bg-amber-500 hover:bg-amber-600 rounded text-sm">Salvar</button>
+                      <button onClick={handleCancelEditPrice} className="px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-sm">Cancelar</button>
                     </>
                   ) : (
                     <>
-                      <button onClick={() => handleStartEditPrice(s)} className="button button-small"><FaEdit /></button>
+                      <button onClick={() => handleStartEditPrice(s)} className="px-3 py-1 bg-zinc-700 hover:bg-zinc-600 rounded text-sm"><FaEdit /></button>
                     </>
                   )}
                 </div>
@@ -479,3 +496,4 @@ export default function App() {
     </>
   );
 }
+
