@@ -1,11 +1,8 @@
-  
- 
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/*   PALETA PRINCIPAL  */
+/* PALETA PRINCIPAL */
 :root {
   --color-bg: #0a0a0a;
   --color-surface: #151515;
@@ -16,12 +13,12 @@
   --color-muted: #a1a1aa;
 }
 
-/*  RESET GLOBAL   */
+/* RESET GLOBAL */
 body {
   @apply bg-[var(--color-bg)] text-[var(--color-text)] font-sans antialiased;
 }
 
-/* ---------- CABEÇALHOS E TEXTOS ---------- */
+/*   CABEÇALHOS E TEXTOS   */
 h1, h2, h3 {
   @apply font-bold tracking-tight text-[var(--color-text)];
 }
@@ -30,7 +27,7 @@ h1, h2, h3 {
   color: var(--color-primary);
 }
 
-/* ---------- LOGO E HERO ---------- */
+/*   LOGO E HERO  */
 .home-hero {
   @apply relative min-h-screen flex flex-col justify-center items-center text-center overflow-hidden;
 }
@@ -40,79 +37,29 @@ h1, h2, h3 {
 .home-content {
   @apply relative z-10 flex flex-col items-center p-6;
 }
-
 .logo {
   @apply w-24 sm:w-28 md:w-36 mb-4 animate-float drop-shadow-[0_0_20px_rgba(251,191,36,0.3)];
 }
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  50% { transform: translateY(-10px);}
 }
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
+.animate-float { animation: float 3s ease-in-out infinite; }
 
-/* ---------- BOTÕES ---------- */
+/*   BOTÕES E INPUTS   */
 .button {
-  @apply flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-200 uppercase tracking-wide;
+  @apply flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all duration-200;
 }
-
 .button-primary {
-  @apply bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-secondary)]
-  text-black shadow-[0_0_25px_rgba(251,191,36,0.3)]
-  hover:brightness-110 hover:shadow-[0_0_40px_rgba(251,191,36,0.5)];
+  @apply bg-[var(--color-primary)] text-black hover:brightness-110 shadow-lg hover:shadow-[0_0_20px_rgba(251,191,36,0.4)];
 }
-
 .button-outline {
-  @apply border border-[var(--color-primary)] text-[var(--color-primary)]
-  hover:bg-[var(--color-primary)] hover:text-black transition-all;
+  @apply border border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-black transition-all;
 }
-
-.button-small {
-  @apply px-3 py-1 text-sm bg-zinc-700 hover:bg-zinc-600 text-white rounded-md;
-}
-
-/* ---------- INPUTS ---------- */
 .input {
-  @apply bg-[var(--color-surface)] border border-zinc-700 rounded-xl p-3 text-white w-full focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)];
+  @apply bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white w-full focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)];
 }
-
 .label {
-  @apply block text-sm font-semibold mb-1 text-[var(--color-primary)];
+  @apply block text-sm font-semibold mb-1 text-[var(--color-muted)];
 }
-
-/* ---------- CARDS ---------- */
-.barber-card {
-  @apply bg-[var(--color-card)] border border-zinc-800 hover:border-[var(--color-primary)] hover:shadow-[0_0_20px_rgba(251,191,36,0.3)]
-  rounded-2xl p-4 transition-all duration-200;
-}
-
-.service-card {
-  @apply relative bg-zinc-800 hover:bg-zinc-700 rounded-2xl p-6 cursor-pointer transform hover:scale-[1.05] transition-all duration-200 shadow-md;
-}
-
-.service-card.selected {
-  @apply bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-secondary)]
-  text-black shadow-[0_0_30px_rgba(251,191,36,0.5)];
-}
-
-/* ---------- SPINNER ---------- */
-.loading-spinner {
-  @apply w-10 h-10 border-4 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin;
-}
-
-/* ---------- ADMIN PANEL ---------- */
-.admin-panel {
-  @apply bg-[var(--color-surface)] p-5 rounded-xl shadow-lg border border-zinc-800;
-}
-
-.admin-section {
-  @apply bg-zinc-900 p-4 rounded-lg border border-zinc-800;
-}
-
-/* ---------- GRID ---------- */
-.grid-cols-responsive {
-  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4;
-}
-

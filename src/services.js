@@ -1,14 +1,11 @@
+// services.js
 export const staticServices = [
-  { id: 1, name: 'Degradê', price: 50 },
-  { id: 2, name: 'Social', price: 40 },
-  { id: 3, name: 'Barba', price: 35 },
-  { id: 4, name: 'Sobrancelha', price: 10 },
-  { id: 5, name: 'Bigode', price: 20 },
-  { id: 6, name: 'Pezinho', price: 15 },
-  { id: 7, name: 'Alisamento', price: 100 },
-  { id: 8, name: 'Luzes', price: 150 },
-  { id: 9, name: 'Platinado', price: 180 },
-  { id: 10, name: 'Pigmentação', price: 30 },
-  { id: 11, name: 'Cera nariz/ouvido', price: 20 }
+  { id: 1, nome: "Barba", preco: 35 },
+  { id: 2, nome: "Corte Social", preco: 40 },
+  { id: 3, nome: "Degradê", preco: 50 },
+  { id: 4, nome: "Corte + Pigmentação", preco: 80 },
+  { id: 5, nome: "Corte + Alisamento", preco: 100 },
+  { id: 6, nome: "Corte + Luzes", preco: 180 },
+  { id: 7, nome: "Corte + Platinado", preco: 200 },
+  { id: 8, nome: "Sobrancelha", preco: 10 }
 ];
-

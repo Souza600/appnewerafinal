@@ -1,35 +1,29 @@
-<<<<<<< HEAD
-// src/App.jsx
-=======
- // src/App.jsx
->>>>>>> 8924ce58 (fix: tailwind design premium working)
 import React, { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "./supabaseClient";
+import { staticServices } from "./services.js";
 import "./App.css";
 import {
-  FaCut,
-  FaUserCircle,
-  FaSignInAlt,
-  FaSignOutAlt,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaEdit,
+  FaCut, FaUserCircle, FaSignInAlt, FaSignOutAlt, FaCheckCircle, FaEdit,
 } from "react-icons/fa";
 import { MdOutlineContentCut } from "react-icons/md";
 import { Toaster, toast } from "sonner";
-import { staticServices } from "./services.js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const ADMIN_USER = "Admin12345";
+const ADMIN_PASS = "12345";
+
+const BG_IMAGES = [
+  "/l4dq00mz.jpg",
+  "/lt7h3jnf.jpg",
+  "/967bq6ij.jpg",
+];
 
 export default function App() {
-  // -------------------------
-  // Estados principais
-  // -------------------------
-  const [view, setView] = useState("home"); // home, barbers, services, schedule, adminLogin, adminDashboard
+  // Estado de navegação (tela)
+  const [view, setView] = useState("home");
+
+  // CLIENTE
   const [barbers, setBarbers] = useState([]);
-  const [services, setServices] = useState([]);
+  const [services, setServices] = useState(staticServices);
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [selectedServices, setSelectedServices] = useState([]);
   const [selectedDate, setSelectedDate] = useState("");
@@ -37,9 +31,8 @@ export default function App() {
   const [clientName, setClientName] = useState("");
   const [availableTimes, setAvailableTimes] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  // admin
+  // ADMIN
   const [adminLoggedIn, setAdminLoggedIn] = useState(false);
   const [adminUsername, setAdminUsername] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
@@ -47,367 +40,177 @@ export default function App() {
   const [adminFilterBarberId, setAdminFilterBarberId] = useState("");
   const [editingServiceId, setEditingServiceId] = useState(null);
   const [editingPriceValue, setEditingPriceValue] = useState("");
-
-  const ADMIN_USERNAME = "ADM123";
-  const ADMIN_PASSWORD = "12345";
-
-  const backgroundImages = [
-    "/l4dq00mz.jpeg",
-    "/lt7h3jnf.jpeg",
-    "/967bq6ij.jpeg",
-  ];
   const [currentBg, setCurrentBg] = useState(0);
 
-  // -------------------------
-  // Inicialização
-  // -------------------------
+  // ------------------- INICIALIZAÇÃO ------------------------
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      try {
-        const { data: barbersData, error: barbersErr } = await supabase
-          .from("barbeiros")
-          .select("*")
-          .order("id", { ascending: true });
-
-        if (barbersErr) throw barbersErr;
-        setBarbers(barbersData || []);
-        setServices(staticServices || []);
-
-        // carrega serviços reais do banco (se houver)
-        const { data: servDB, error: servErr } = await supabase
-          .from("servicos")
-          .select("*")
-          .order("id", { ascending: true });
-        if (!servErr && Array.isArray(servDB) && servDB.length > 0) {
-          setServices(servDB);
-        }
-      } catch (err) {
-        console.error("Init error:", err);
-        setError("Erro ao carregar dados iniciais.");
-      } finally {
-        setLoading(false);
-      }
+      const { data: bbq } = await supabase.from("barbeiros").select("*").order("id");
+      setBarbers(bbq || []);
+      setServices(staticServices);
+      setLoading(false);
     };
     init();
-
-    const interval = setInterval(
-      () => setCurrentBg((prev) => (prev + 1) % backgroundImages.length),
-      10000
-    );
-    return () => clearInterval(interval);
+    const i = setInterval(() => setCurrentBg((v) => (v + 1) % BG_IMAGES.length), 9000);
+    return () => clearInterval(i);
   }, []);
 
+  // Atualiza horários disponíveis ao trocar barbeiro/data
   useEffect(() => {
     if (selectedBarber && selectedDate) fetchAvailableTimes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBarber, selectedDate]);
 
-  // -------------------------
-  // Horários
-  // -------------------------
-  const generateTimeSlots = () => [
-    "08:00",
-    "08:40",
-    "09:20",
-    "10:00",
-    "10:40",
-    "11:20",
-    "14:00",
-    "14:40",
-    "15:20",
-    "16:00",
-    "16:40",
-    "17:20",
-    "18:00",
-    "18:40",
-    "19:20",
-  ];
-
-  const fetchAvailableTimes = async () => {
-    if (!selectedBarber || !selectedDate) {
-      setAvailableTimes(generateTimeSlots());
-      return;
-    }
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("horarios")
-        .select("hora")
-        .eq("barbeiro_id", selectedBarber.id)
-        .eq("data", selectedDate)
-        .eq("ocupado", true);
-
-      if (error) throw error;
-      const occupiedTimes = data ? data.map((r) => r.hora.substring(0, 5)) : [];
-      const available = generateTimeSlots().filter(
-        (t) => !occupiedTimes.includes(t)
-      );
-      setAvailableTimes(available);
-    } catch (err) {
-      console.error("fetchAvailableTimes error:", err);
-      setAvailableTimes(generateTimeSlots());
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // -------------------------
-  // Serviços e seleção
-  // -------------------------
-  const handleServiceSelect = (service) => {
-    setSelectedServices((prev) =>
-      prev.some((s) => s.id === service.id)
-        ? prev.filter((s) => s.id !== service.id)
-        : [...prev, service]
-    );
-  };
-
-  const calculateTotal = () =>
-    selectedServices.reduce((sum, s) => sum + Number(s.preco ?? s.price ?? 0), 0);
-
-  // -------------------------
-  // Agendamento: chama RPC book_slot e redireciona WhatsApp
-  // -------------------------
-  const handleConfirmAppointment = async () => {
-    if (!selectedBarber) return toast.error("Selecione um barbeiro.");
-    if (!selectedDate) return toast.error("Escolha uma data.");
-    if (!selectedTime) return toast.error("Escolha um horário.");
-    if (!clientName || clientName.trim().length < 2)
-      return toast.error("Informe seu nome completo.");
-
-    setLoading(true);
-    try {
-      // normaliza hora para RPC (HH:MM:SS)
-      const horaParaRpc =
-        selectedTime.includes(":") && selectedTime.length === 5
-          ? `${selectedTime}:00`
-          : selectedTime;
-
-      const { data: result, error: rpcError } = await supabase.rpc(
-        "book_slot",
-        {
-          _barbeiro_id: selectedBarber.id,
-          _data: selectedDate,
-          _hora: horaParaRpc,
-          _cliente_nome: clientName.trim(),
-        }
-      );
-
-      if (rpcError) {
-        console.error("RPC error:", rpcError);
-        toast.error("Erro ao confirmar agendamento.");
-        return;
-      }
-
-      const rpcResult = Array.isArray(result) ? result[0] : result;
-      if (!rpcResult || !rpcResult.success) {
-        toast.error(rpcResult?.message || "Falha ao confirmar agendamento.");
-        return;
-      }
-
-      // pega telefone do barbeiro
-      const { data: barbeiroData, error: barberErr } = await supabase
-        .from("barbeiros")
-        .select("telefone, nome")
-        .eq("id", selectedBarber.id)
-        .single();
-
-      if (barberErr) {
-        toast.warning("Agendamento confirmado, mas não foi possível abrir WhatsApp.");
-        return;
-      }
-
-      const rawTel = (barbeiroData?.telefone || "").toString().trim();
-      const tel = rawTel.replace(/\D/g, "");
-      if (!tel) {
-        toast.warning("Telefone do barbeiro não cadastrado.");
-        return;
-      }
-
-      const numero = tel.startsWith("55") ? tel : `55${tel}`;
-      const msg = `Olá, acabei de confirmar meu agendamento para o dia ${selectedDate} às ${selectedTime}.`;
-      const url = `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
-
-      toast.success("Agendamento confirmado! Redirecionando...");
-      // pequeno delay pra exibir toast
-      setTimeout(() => {
-        window.location.href = url;
-      }, 1300);
-    } catch (err) {
-      console.error("Handle confirm appointment error:", err);
-      toast.error("Erro inesperado ao confirmar agendamento.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // -------------------------
-  // ADMIN: login, listagem, liberar horário, editar preço
-  // -------------------------
+  // ------------------- ADMIN FUNÇÕES ------------------------
   const handleAdminLogin = (e) => {
     e.preventDefault();
-    if (adminUsername === ADMIN_USERNAME && adminPassword === ADMIN_PASSWORD) {
+    if (adminUsername === ADMIN_USER && adminPassword === ADMIN_PASS) {
       setAdminLoggedIn(true);
       setView("adminDashboard");
-      toast.success("Login do admin realizado.");
-      fetchAdminAppointments(); // carregar
+      fetchAdminAppointments();
+      toast.success("Login realizado");
     } else {
-      toast.error("Usuário ou senha inválidos.");
+      toast.error("Usuário ou senha inválidos");
     }
   };
-
   const handleAdminLogout = () => {
     setAdminLoggedIn(false);
     setAdminUsername("");
     setAdminPassword("");
     setView("home");
   };
-
   const fetchAdminAppointments = async () => {
     setLoading(true);
-    try {
-      // buscar horários (join com barbeiros e clientes)
-      const { data, error } = await supabase
-        .from("horarios")
-        .select("id, barbeiro_id, data, hora, ocupado, cliente_id, clientes(nome), barbeiros(nome)")
-        .order("data", { ascending: true })
-        .order("hora", { ascending: true });
-
-      if (error) throw error;
-      setAdminAppointments(data || []);
-    } catch (err) {
-      console.error("fetchAdminAppointments error:", err);
-      toast.error("Erro ao carregar agendamentos do admin.");
-    } finally {
-      setLoading(false);
-    }
+    const { data, error } = await supabase
+      .from("horarios")
+      .select("id, barbeiro_id, data, hora, ocupado, cliente_id, clientes ( nome ), barbeiros ( nome, telefone )")
+      .order("data", { ascending: true })
+      .order("hora", { ascending: true });
+    setAdminAppointments(data || []);
+    setLoading(false);
   };
-
-  const filteredAdminAppointments = adminAppointments.filter((a) =>
-    adminFilterBarberId ? a.barbeiro_id === Number(adminFilterBarberId) : true
-  );
-
   const handleReleaseSlot = async (horarioId) => {
-    // atualiza ocupado para false (mantendo registro)
-    try {
-      const { error } = await supabase
-        .from("horarios")
-        .update({ ocupado: false })
-        .eq("id", horarioId);
-
-      if (error) throw error;
-      toast.success("Horário liberado.");
-      // atualizar listagem
-      fetchAdminAppointments();
-    } catch (err) {
-      console.error("handleReleaseSlot error:", err);
-      toast.error("Erro ao liberar horário.");
-    }
+    await supabase.from("horarios").update({ ocupado: false }).eq("id", horarioId);
+    toast.success("Horário liberado");
+    fetchAdminAppointments();
   };
-
   const handleStartEditPrice = (service) => {
     setEditingServiceId(service.id);
     setEditingPriceValue((service.preco ?? service.price ?? 0).toString());
   };
-
   const handleCancelEditPrice = () => {
     setEditingServiceId(null);
     setEditingPriceValue("");
   };
-
   const handleSaveServicePrice = async (serviceId) => {
     const newPrice = parseFloat(editingPriceValue);
     if (isNaN(newPrice) || newPrice < 0) {
       toast.error("Preço inválido.");
       return;
     }
-    try {
-      const { error } = await supabase
-        .from("servicos")
-        .update({ preco: newPrice })
-        .eq("id", serviceId);
+    await supabase.from("servicos").update({ preco: newPrice }).eq("id", serviceId);
+    setServices(services.map((s) => s.id === serviceId ? { ...s, preco: newPrice } : s));
+    handleCancelEditPrice();
+    toast.success("Preço atualizado");
+  };
+  const filteredAdminAppointments = adminAppointments.filter(
+    (a) => (adminFilterBarberId ? a.barbeiro_id === Number(adminFilterBarberId) : true)
+  );
 
-      if (error) throw error;
-      toast.success("Preço atualizado.");
-      // atualizar lista local de serviços
-      const updated = services.map((s) =>
-        s.id === serviceId ? { ...s, preco: newPrice } : s
-      );
-      setServices(updated);
-      handleCancelEditPrice();
-    } catch (err) {
-      console.error("handleSaveServicePrice error:", err);
-      toast.error("Erro ao atualizar preço.");
-    }
+  // ------------------- HORÁRIOS CLIENTE ------------------------
+  const generateTimeSlots = () => {
+    // De 8:00 às 12:00 e das 14:00 às 20:00, de 40 em 40 min
+    const slots = [];
+    for (let h = 8; h <= 11; h++) for (let m of [0, 40]) slots.push([h, m]);
+    slots.push([12, 0]);
+    for (let h = 14; h <= 19; h++) for (let m of [0, 40]) slots.push([h, m]);
+    slots.push([20, 0]);
+    return slots.map(([h, m]) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+  };
+  const fetchAvailableTimes = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("horarios")
+      .select("hora")
+      .eq("barbeiro_id", selectedBarber.id)
+      .eq("data", selectedDate)
+      .eq("ocupado", true);
+    const occupied = data ? data.map((r) => r.hora.substring(0, 5)) : [];
+    setAvailableTimes(generateTimeSlots().map((t) => ({
+      time: t,
+      ocupado: occupied.includes(t)
+    })));
+    setLoading(false);
   };
 
-  // -------------------------
-<<<<<<< HEAD
-  // Renderers - telas
-  // -------------------------
+  // ------------------- CLIENTE: SERVIÇOS ------------------------
+  const handleServiceSelect = (service) => {
+    setSelectedServices((prev) =>
+      prev.some((s) => s.id === service.id) ?
+        prev.filter((s) => s.id !== service.id)
+        : [...prev, service]
+    );
+  };
+  const calculateTotal = () =>
+    selectedServices.reduce((sum, s) => sum + Number(s.preco ?? s.price ?? 0), 0);
+
+  // ------------------- CLIENTE: AGENDAMENTO ------------------------
+  const handleConfirmAppointment = async () => {
+    if (!selectedBarber) return toast.error("Selecione um barbeiro.");
+    if (!selectedDate) return toast.error("Escolha uma data.");
+    if (!selectedTime) return toast.error("Escolha um horário.");
+    if (!clientName || clientName.trim().length < 2)
+      return toast.error("Informe seu nome completo.");
+    setLoading(true);
+
+    try {
+      const horaParaRpc = `${selectedTime}:00`;
+      const { error } = await supabase.rpc("book_slot", {
+        _barbeiro_id: selectedBarber.id,
+        _data: selectedDate,
+        _hora: horaParaRpc,
+        _cliente_nome: clientName.trim(),
+      });
+      if (error) throw error;
+      // WhatsApp
+      const numero = (selectedBarber.telefone || "").replace(/\D/g, "");
+      const numeroMsg = numero.startsWith("55") ? numero : `55${numero}`;
+      const servicos = selectedServices.map((s) => s.nome).join(", ");
+      const valorFinal = calculateTotal().toFixed(2);
+      const msg = `Olá, agendei o serviço: ${servicos} (Total R$${valorFinal}) para ${selectedDate} às ${selectedTime}.`;
+      const url = `https://wa.me/${numeroMsg}?text=${encodeURIComponent(msg)}`;
+      toast.success("Agendamento confirmado! Redirecionando para o WhatsApp...");
+      setTimeout(() => {
+        window.location.href = url;
+      }, 1300);
+    } catch (err) {
+      toast.error("Erro ao agendar.");
+    }
+    setLoading(false);
+  };
+
+  // ------------------- RENDER ------------------------
+  // TELA HOME
   const renderHome = () => (
     <div
-      className="min-h-screen flex flex-col items-center justify-center text-center relative overflow-hidden"
+      className="home-hero"
       style={{
-        backgroundImage: `url(${backgroundImages[currentBg]})`,
+        backgroundImage: `url(${BG_IMAGES[currentBg]})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
     >
-      <div className="absolute inset-0 bg-black opacity-75"></div>
-      <div className="relative z-10 flex flex-col items-center p-6 max-w-md w-full">
-        <img
-          src="/newera_logo_refined.png"
-          alt="Logo"
-          className="w-28 mb-4 animate-float mx-auto"
-        />
-        <h1 className="text-3xl font-bold text-primary mb-2">NewEra BarberSHOP</h1>
+      <div className="home-overlay" />
+      <div className="home-content max-w-md w-full">
+        <img src="/newera_logo_refined.jpg" alt="Logo" className="logo mx-auto" />
+        <h1 className="text-4xl font-bold text-primary mb-2">NewEra BarberSHOP</h1>
         <p className="text-lg text-white mb-6">Tradição renovada em cada corte</p>
-
         <button
-          onClick={() => setView("barbers")}
+          onClick={() => setView("services")}
           className="button button-primary mb-3 w-full"
-=======
-  /// -------------------------
-// Renderers - telas
-// -------------------------
-const renderHome = () => (
-  <div
-    className="home-hero"
-    style={{
-      backgroundImage: `url(${backgroundImages[currentBg]})`,
-      backgroundSize: "cover",
-      backgroundPosition: "center",
-    }}
-  >
-    <div className="home-overlay"></div>
-
-    <div className="home-content max-w-md w-full">
-      {/* Logo centralizada e menor */}
-      <img
-        src="/newera_logo_refined.png"
-        alt="Logo"
-        className="logo mx-auto"
-      />
-
-      <h1 className="text-4xl sm:text-5xl font-bold text-[var(--color-primary)] mb-3 drop-shadow-[0_2px_6px_rgba(251,191,36,0.4)]">
-        NewEra BarberSHOP
-      </h1>
-
-      <p className="text-lg sm:text-xl text-zinc-200 mb-8">
-        Tradição renovada em cada corte
-      </p>
-
-      <div className="flex flex-col gap-3 w-full">
-        <button
-          onClick={() => setView("barbers")}
-          className="button button-primary w-full"
->>>>>>> 8924ce58 (fix: tailwind design premium working)
         >
           <FaCut className="mr-2" /> Agendar Horário
         </button>
-
         <button
           onClick={() => setView("adminLogin")}
           className="button button-outline w-full"
@@ -416,43 +219,9 @@ const renderHome = () => (
         </button>
       </div>
     </div>
-<<<<<<< HEAD
-  );
-=======
-  </div>
-);
->>>>>>> 8924ce58 (fix: tailwind design premium working)
-
-  const renderBarbers = () => (
-    <div className="min-h-screen bg-background text-text p-6 flex flex-col items-center">
-      <h2 className="text-2xl font-bold text-primary mb-6">Escolha seu Barbeiro</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
-        {barbers.map((barber) => (
-          <div
-            key={barber.id}
-            className="barber-card p-4 rounded-xl cursor-pointer hover:scale-105 transition"
-            onClick={() => {
-              setSelectedBarber(barber);
-              setView("services");
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <FaUserCircle className="text-primary text-4xl" />
-              <div>
-                <h3 className="text-lg font-semibold">{barber.nome}</h3>
-                {barber.telefone && <p className="text-sm opacity-80">{barber.telefone}</p>}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <button onClick={() => setView("home")} className="button button-outline mt-6">
-        Voltar
-      </button>
-    </div>
   );
 
+  // TELA SELEÇÃO DE SERVIÇOS
   const renderServices = () => (
     <div className="min-h-screen p-6 flex flex-col items-center bg-gradient-to-b from-zinc-900 via-zinc-800 to-zinc-900 text-white">
       <h2 className="text-3xl font-bold mb-6">Escolha os Serviços</h2>
@@ -476,13 +245,12 @@ const renderHome = () => (
           );
         })}
       </div>
-
       <div className="w-full max-w-md flex justify-between items-center mb-6 p-3 bg-zinc-800 rounded-xl">
         <p className="text-lg font-semibold">
           Total: <span className="text-amber-400">R$ {calculateTotal().toFixed(2)}</span>
         </p>
         <button
-          onClick={() => setView("schedule")}
+          onClick={() => setView("barbers")}
           disabled={selectedServices.length === 0}
           className={`px-6 py-3 rounded-xl text-white font-semibold ${
             selectedServices.length > 0 ? "bg-amber-500" : "bg-gray-600"
@@ -491,17 +259,46 @@ const renderHome = () => (
           Continuar
         </button>
       </div>
-
-      <button onClick={() => setView("barbers")} className="button button-outline">
+      <button onClick={() => setView("home")} className="button button-outline">
         Voltar
       </button>
     </div>
   );
 
+  // TELA SELEÇÃO BARBEIRO
+  const renderBarbers = () => (
+    <div className="min-h-screen bg-background text-text p-6 flex flex-col items-center">
+      <h2 className="text-2xl font-bold text-primary mb-6">Escolha seu Barbeiro</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
+        {barbers.map((barber) => (
+          <div
+            key={barber.id}
+            className="barber-card p-4 rounded-xl cursor-pointer hover:scale-105 transition"
+            onClick={() => {
+              setSelectedBarber(barber);
+              setView("schedule");
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <FaUserCircle className="text-primary text-4xl" />
+              <div>
+                <h3 className="text-lg font-semibold">{barber.nome}</h3>
+                {barber.telefone && <p className="text-sm opacity-80">{barber.telefone}</p>}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button onClick={() => setView("services")} className="button button-outline mt-6">
+        Voltar
+      </button>
+    </div>
+  );
+
+  // TELA ESCOLHA DE HORÁRIO
   const renderSchedule = () => (
     <div className="min-h-screen bg-background text-text p-6 flex flex-col items-center">
       <h2 className="text-2xl font-bold mb-6">Agende seu Horário</h2>
-
       <div className="w-full max-w-md mb-4">
         <label className="label mb-2">Data:</label>
         <input
@@ -512,18 +309,21 @@ const renderHome = () => (
           min={new Date().toISOString().split("T")[0]}
         />
       </div>
-
       {selectedDate && (
         <div className="w-full max-w-md mb-6">
           <label className="label mb-2">Horários Disponíveis:</label>
-          {availableTimes.length === 0 && !loading && (
-            <p className="text-text-muted">Nenhum horário disponível para esta data.</p>
-          )}
           <div className="grid grid-cols-3 gap-3">
-            {availableTimes.map((time) => (
+            {availableTimes.map(({ time, ocupado }) => (
               <button
                 key={time}
-                className={`button ${selectedTime === time ? "button-primary" : "button-outline"}`}
+                className={`button ${
+                  selectedTime === time
+                    ? "button-primary"
+                    : ocupado
+                    ? "bg-red-500 text-white"
+                    : "button-outline"
+                }`}
+                disabled={ocupado}
                 onClick={() => setSelectedTime(time)}
               >
                 {time}
@@ -532,7 +332,6 @@ const renderHome = () => (
           </div>
         </div>
       )}
-
       <div className="w-full max-w-md mb-4">
         <label className="label mb-2">Seu Nome Completo:</label>
         <input
@@ -543,9 +342,8 @@ const renderHome = () => (
           placeholder="Nome e Sobrenome"
         />
       </div>
-
       <div className="w-full max-w-md flex justify-between items-center mt-4">
-        <button onClick={() => setView("services")} className="button button-outline">
+        <button onClick={() => setView("barbers")} className="button button-outline">
           Voltar
         </button>
         <button
@@ -559,7 +357,7 @@ const renderHome = () => (
     </div>
   );
 
-  // --------- ADMIN UI ----------
+  // TELA ADMIN LOGIN
   const renderAdminLogin = () => (
     <div className="min-h-screen p-6 flex items-center justify-center bg-background">
       <div className="w-full max-w-md bg-zinc-900 p-6 rounded-xl shadow-lg">
@@ -588,6 +386,7 @@ const renderHome = () => (
     </div>
   );
 
+  // TELA ADMIN DASHBOARD
   const renderAdminDashboard = () => (
     <div className="min-h-screen p-6 bg-background text-text">
       <div className="flex items-center justify-between mb-6">
@@ -599,15 +398,12 @@ const renderHome = () => (
             onChange={(e) => setAdminFilterBarberId(e.target.value)}
           >
             <option value="">Todos os Barbeiros</option>
-            {barbers.map((b) => (
-              <option key={b.id} value={b.id}>{b.nome}</option>
-            ))}
+            {barbers.map((b) => (<option key={b.id} value={b.id}>{b.nome}</option>))}
           </select>
           <button onClick={fetchAdminAppointments} className="button button-outline">Atualizar</button>
           <button onClick={handleAdminLogout} className="button button-outline"><FaSignOutAlt /></button>
         </div>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Agendamentos */}
         <div className="bg-zinc-900 p-4 rounded-xl shadow">
@@ -632,8 +428,7 @@ const renderHome = () => (
             ))}
           </div>
         </div>
-
-        {/* Serviços - editar preço */}
+        {/* Serviços */}
         <div className="bg-zinc-900 p-4 rounded-xl shadow">
           <h3 className="text-lg font-semibold mb-3">Serviços (Editar Preços)</h3>
           <div className="space-y-3">
@@ -671,9 +466,7 @@ const renderHome = () => (
     </div>
   );
 
-  // -------------------------
-  // Switch view
-  // -------------------------
+  // -------------- RENDER PRINCIPAL ----------------
   return (
     <>
       <Toaster position="top-center" />
@@ -686,7 +479,3 @@ const renderHome = () => (
     </>
   );
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> 8924ce58 (fix: tailwind design premium working)
