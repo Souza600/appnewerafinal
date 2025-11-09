@@ -73,22 +73,78 @@ export default function App() {
     setView("home");
   };
 
+ 
   const fetchAdminAppointments = async () => {
+    console.log("🔄 Buscando agendamentos...");
     setLoading(true);
-    const { data, error } = await supabase
-      .from("horarios")
-      .select("id, barbeiro_id, data, hora, ocupado, cliente_id, clientes ( nome ), barbeiros ( nome, telefone )")
-      .order("data", { ascending: true })
-      .order("hora", { ascending: true });
-    setAdminAppointments(data || []);
-    setLoading(false);
+    try {
+      // 1. Buscar horários ocupados
+      const { data: horariosData, error: horariosError } = await supabase
+        .from("horarios")
+        .select("*")
+        .eq("ocupado", true)
+        .order("data", { ascending: true })
+        .order("hora", { ascending: true });
+
+      if (horariosError) throw horariosError;
+
+      // 2. Buscar todos os barbeiros
+      const { data: barbeirosData } = await supabase
+        .from("barbeiros")
+        .select("id, nome, telefone");
+
+      // 3. Buscar todos os clientes
+      const { data: clientesData } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone");
+
+      // 4. Fazer o JOIN manualmente
+      const result = (horariosData || []).map(horario => {
+        const barbeiro = (barbeirosData || []).find(b => b.id === horario.barbeiro_id);
+        const cliente = (clientesData || []).find(c => c.id === horario.cliente_id);
+
+        console.log(`Processando ID ${horario.id}: barbeiro=${barbeiro?.nome}, cliente=${cliente?.nome}`);
+
+        return {
+          ...horario,
+          barbeiros: barbeiro || { nome: "—" },
+          clientes: cliente || { nome: "Sem nome" }
+        };
+      });
+
+      console.log("✅ Total processado:", result.length, result);
+      setAdminAppointments(result);
+    } catch (err) {
+      console.error("❌ Erro:", err);
+      toast.error("Erro ao carregar agendamentos.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleReleaseSlot = async (horarioId) => {
-    await supabase.from("horarios").update({ ocupado: false, cliente_id: null }).eq("id", horarioId);
-    toast.success("Horário liberado");
-    fetchAdminAppointments();
-  };
+ const handleReleaseSlot = async (horarioId) => {
+  console.log("🔓 Liberando ID:", horarioId);
+  try {
+    const { error } = await supabase
+      .from("horarios")
+      .update({ ocupado: false, cliente_id: null })
+      .eq("id", horarioId);
+
+    if (error) throw error;
+
+    toast.success("Horário liberado com sucesso.");
+    // Atualiza o estado removendo o agendamento liberado da lista (caso use isso visualmente)
+    setAdminAppointments(prev => prev.filter(item => item.id !== horarioId));
+    // Atualiza a lista completa após um delay para garantir o sync visual
+    await new Promise(resolve => setTimeout(resolve, 800));
+    await fetchAdminAppointments();
+  } catch (err) {
+    console.error("❌ Erro ao liberar:", err);
+    toast.error("Erro ao liberar horário.");
+  }
+};
+
+
 
   const handleStartEditPrice = (service) => {
     setEditingServiceId(service.id);
