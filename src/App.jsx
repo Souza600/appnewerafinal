@@ -308,7 +308,7 @@ setAvailableTimes(horariosDisponiveis.map((t) => ({
   className="font-light mb-8"
   style={{
     color: "#fff",
-    fontSize: "2.2rem",
+    fontSize: "1.8rem",
     fontWeight: 700,
     fontFamily: "'Poppins', Arial, sans-serif",
     letterSpacing: "0.01em",
