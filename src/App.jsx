@@ -316,7 +316,7 @@ setAvailableTimes(horariosDisponiveis.map((t) => ({
     whiteSpace: "nowrap"  // <-- Isso força tudo em uma linha só
   }}
 >
-  Corte - Atitude - Respeito.
+  Corte - Atitude - Respeito
 </p>
 
 
