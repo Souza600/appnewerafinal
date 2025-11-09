@@ -172,14 +172,12 @@ export default function App() {
     (a) => (adminFilterBarberId ? a.barbeiro_id === Number(adminFilterBarberId) : true)
   );
 
-  const generateTimeSlots = () => {
-    const slots = [];
-    for (let h = 8; h <= 11; h++) for (let m of [0, 40]) slots.push([h, m]);
-    slots.push([12, 0]);
-    for (let h = 14; h <= 19; h++) for (let m of [0, 40]) slots.push([h, m]);
-    slots.push([20, 0]);
-    return slots.map(([h, m]) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
-  };
+  const horariosDisponiveis = [
+  "08:00:00", "08:40:00", "09:20:00", "10:00:00", "10:40:00", "11:20:00", "12:00:00",
+  "14:00:00", "14:40:00", "15:20:00", "16:00:00", "16:40:00", "17:20:00",
+  "18:00:00", "18:40:00", "19:20:00", "20:00:00"
+];
+
 
   const fetchAvailableTimes = async () => {
     setLoading(true);
@@ -189,11 +187,11 @@ export default function App() {
       .eq("barbeiro_id", selectedBarber.id)
       .eq("data", selectedDate)
       .eq("ocupado", true);
-    const occupied = data ? data.map((r) => r.hora.substring(0, 5)) : [];
-    setAvailableTimes(generateTimeSlots().map((t) => ({
-      time: t,
-      ocupado: occupied.includes(t)
-    })));
+const occupied = data ? data.map(r => r.hora) : [];
+setAvailableTimes(horariosDisponiveis.map((t) => ({
+  time: t,
+  ocupado: occupied.includes(t)
+})));
     setLoading(false);
   };
 
@@ -209,41 +207,59 @@ export default function App() {
     selectedServices.reduce((sum, s) => sum + Number(s.preco ?? s.price ?? 0), 0);
 
   const handleConfirmAppointment = async () => {
-    if (!selectedBarber) return toast.error("Selecione um barbeiro.");
-    if (!selectedDate) return toast.error("Escolha uma data.");
-    if (!selectedTime) return toast.error("Escolha um horário.");
-    if (!clientName || clientName.trim().length < 2)
-      return toast.error("Informe seu nome completo.");
-    setLoading(true);
+  if (!selectedBarber) return toast.error("Selecione um barbeiro.");
+  if (!selectedDate) return toast.error("Escolha uma data.");
+  if (!selectedTime) return toast.error("Escolha um horário.");
+  if (!clientName || clientName.trim().length < 2)
+    return toast.error("Informe seu nome completo.");
+  setLoading(true);
 
-    try {
-      const horaParaRpc = `${selectedTime}:00`;
-      const { error } = await supabase.rpc("book_slot", {
-        _barbeiro_id: selectedBarber.id,
-        _data: selectedDate,
-        _hora: horaParaRpc,
-        _cliente_nome: clientName.trim(),
-      });
-      if (error) throw error;
+  try {
+    // Hora precisa ser no formato 'HH:MM:SS'
+    const horaParaRpc = `${selectedTime.length === 5 ? selectedTime + ':00' : selectedTime}`;
 
-      const numero = (selectedBarber.telefone || "").replace(/\D/g, "");
-      const numeroMsg = numero.startsWith("55") ? numero : `55${numero}`;
-      const servicos = selectedServices.map((s) => s.nome).join(", ");
-      const valorFinal = calculateTotal().toFixed(2);
-      const dataFormatada = new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR");
+    // Aqui faz o agendamento no Supabase
+    const { data, error } = await supabase.rpc('book_slot', {
+      _barbeiro_id: Number(selectedBarber.id),
+      _data: selectedDate,           // formato YYYY-MM-DD
+      _hora: horaParaRpc,            // formato HH:MM:SS
+      _cliente_nome: clientName.trim()
+    });
 
-      const msg = `Olá! 👋 Tudo bem?\n\nEstou confirmando o agendamento para o dia *${dataFormatada}* às *${selectedTime}* com o barbeiro *${selectedBarber.nome}*.\n\n💈 *Serviços solicitados:*\n${servicos}\n\n💰 *Valor total:* R$ ${valorFinal}\n\nAguardo a confirmação! 😊`;
-
-      const url = `https://wa.me/${numeroMsg}?text=${encodeURIComponent(msg)}`;
-      toast.success("Agendamento confirmado! Redirecionando para o WhatsApp...");
-      setTimeout(() => {
-        window.location.href = url;
-      }, 1300);
-    } catch (err) {
-      toast.error("Erro ao agendar.");
+    // Caso haja erro técnico do Supabase
+    if (error) {
+      toast.error("Erro ao agendar: " + (error.message || error));
+      setLoading(false);
+      return;
     }
-    setLoading(false);
-  };
+
+    // Caso a função do Supabase retorne falso (não atualizou slot)
+    if (!data) {
+      toast.error("Horário não pôde ser agendado. Tente outro horário.");
+      setLoading(false);
+      return;
+    }
+
+    // Agendamento OK: monta mensagem e abre WhatsApp
+    const numero = (selectedBarber.telefone || "").replace(/\D/g, "");
+    const numeroMsg = numero.startsWith("55") ? numero : `55${numero}`;
+    const servicos = selectedServices.map((s) => s.nome).join(", ");
+    const valorFinal = calculateTotal().toFixed(2);
+    const dataFormatada = new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR");
+
+    const msg = `Olá! 👋 Tudo bem?\n\nEstou confirmando o agendamento para o dia *${dataFormatada}* às *${selectedTime}* com o barbeiro *${selectedBarber.nome}*.\n\n💈 *Serviços solicitados:*\n${servicos}\n\n💰 *Valor total:* R$ ${valorFinal}\n\nAguardo a confirmação! 😊`;
+
+    const url = `https://wa.me/${numeroMsg}?text=${encodeURIComponent(msg)}`;
+    toast.success("Agendamento confirmado! Redirecionando para o WhatsApp...");
+    setTimeout(() => {
+      window.location.href = url;
+    }, 1300);
+  } catch (err) {
+    toast.error("Erro ao agendar (catch).");
+  }
+  setLoading(false);
+};
+
 
   // ✅ HOME COM LOGO CORRIGIDA
     const renderHome = () => (
@@ -273,24 +289,39 @@ export default function App() {
 
       {/* ✅ Conteúdo principal (acima de tudo) */}
       <div className="relative z-10 flex flex-col items-center p-6 max-w-md w-full">
-        {/* ✅ TÍTULO COM FONTE ESTILOSA E BRANCA */}
-        <h1 
-          className="text-5xl sm:text-6xl md:text-7xl font-bold text-white mb-4 tracking-wider drop-shadow-[0_0_25px_rgba(255,255,255,0.3)]"
-          style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-        >
-          NEWERA
-        </h1>
-        <h2 
-          className="text-3xl sm:text-4xl font-bold text-amber-400 mb-6 tracking-widest drop-shadow-[0_0_20px_rgba(251,191,36,0.6)]"
-          style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-        >
-          BARBERSHOP
-        </h2>
-        
-        <p className="text-base sm:text-lg text-gray-300 mb-8 font-light">
-          Tradição renovada em cada corte ✂️
-        </p>
-        
+       {/* ✅ LOGOMARCA CENTRALIZADA */}
+<div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+  <img
+    src="/logo.png"
+    alt="Logotipo NewEra Barbershop"
+    style={{
+      maxWidth: 380,           // Aumente o valor (em px) para desktops
+      minWidth: 120,           // Define um tamanho mínimo para mobile bem pequeno
+      width: "75%",            // Deixa responsivo (75% do container no mobile)
+      height: "auto",
+      display: "block"
+    }}
+  />
+</div>
+
+<p
+  className="font-light mb-8"
+  style={{
+    color: "#fff",
+    fontSize: "2.2rem",
+    fontWeight: 700,
+    fontFamily: "'Poppins', Arial, sans-serif",
+    letterSpacing: "0.01em",
+    textShadow: "0 1px 3px #0005",
+    whiteSpace: "nowrap"  // <-- Isso força tudo em uma linha só
+  }}
+>
+  Corte - Atitude - Respeito.
+</p>
+
+
+
+
         <button
           onClick={() => setView("services")}
           className="button button-primary mb-4 w-full text-lg py-4 shadow-2xl hover:shadow-amber-500/50 hover:scale-105 transition-all"
