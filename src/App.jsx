@@ -73,7 +73,6 @@ export default function App() {
     setView("home");
   };
 
- 
   const fetchAdminAppointments = async () => {
     console.log("🔄 Buscando agendamentos...");
     setLoading(true);
@@ -122,29 +121,27 @@ export default function App() {
     }
   };
 
- const handleReleaseSlot = async (horarioId) => {
-  console.log("🔓 Liberando ID:", horarioId);
-  try {
-    const { error } = await supabase
-      .from("horarios")
-      .update({ ocupado: false, cliente_id: null })
-      .eq("id", horarioId);
+  const handleReleaseSlot = async (horarioId) => {
+    console.log("🔓 Liberando ID:", horarioId);
+    try {
+      const { error } = await supabase
+        .from("horarios")
+        .update({ ocupado: false, cliente_id: null })
+        .eq("id", horarioId);
 
-    if (error) throw error;
+      if (error) throw error;
 
-    toast.success("Horário liberado com sucesso.");
-    // Atualiza o estado removendo o agendamento liberado da lista (caso use isso visualmente)
-    setAdminAppointments(prev => prev.filter(item => item.id !== horarioId));
-    // Atualiza a lista completa após um delay para garantir o sync visual
-    await new Promise(resolve => setTimeout(resolve, 800));
-    await fetchAdminAppointments();
-  } catch (err) {
-    console.error("❌ Erro ao liberar:", err);
-    toast.error("Erro ao liberar horário.");
-  }
-};
-
-
+      toast.success("Horário liberado com sucesso.");
+      // Atualiza o estado removendo o agendamento liberado da lista (caso use isso visualmente)
+      setAdminAppointments(prev => prev.filter(item => item.id !== horarioId));
+      // Atualiza a lista completa após um delay para garantir o sync visual
+      await new Promise(resolve => setTimeout(resolve, 800));
+      await fetchAdminAppointments();
+    } catch (err) {
+      console.error("❌ Erro ao liberar:", err);
+      toast.error("Erro ao liberar horário.");
+    }
+  };
 
   const handleStartEditPrice = (service) => {
     setEditingServiceId(service.id);
@@ -173,11 +170,10 @@ export default function App() {
   );
 
   const horariosDisponiveis = [
-  "08:00:00", "08:40:00", "09:20:00", "10:00:00", "10:40:00", "11:20:00", "12:00:00",
-  "14:00:00", "14:40:00", "15:20:00", "16:00:00", "16:40:00", "17:20:00",
-  "18:00:00", "18:40:00", "19:20:00", "20:00:00"
-];
-
+    "08:00:00", "08:40:00", "09:20:00", "10:00:00", "10:40:00", "11:20:00", "12:00:00",
+    "14:00:00", "14:40:00", "15:20:00", "16:00:00", "16:40:00", "17:20:00",
+    "18:00:00", "18:40:00", "19:20:00", "20:00:00"
+  ];
 
   const fetchAvailableTimes = async () => {
     setLoading(true);
@@ -187,11 +183,11 @@ export default function App() {
       .eq("barbeiro_id", selectedBarber.id)
       .eq("data", selectedDate)
       .eq("ocupado", true);
-const occupied = data ? data.map(r => r.hora) : [];
-setAvailableTimes(horariosDisponiveis.map((t) => ({
-  time: t,
-  ocupado: occupied.includes(t)
-})));
+    const occupied = data ? data.map(r => r.hora) : [];
+    setAvailableTimes(horariosDisponiveis.map((t) => ({
+      time: t,
+      ocupado: occupied.includes(t)
+    })));
     setLoading(false);
   };
 
@@ -207,62 +203,61 @@ setAvailableTimes(horariosDisponiveis.map((t) => ({
     selectedServices.reduce((sum, s) => sum + Number(s.preco ?? s.price ?? 0), 0);
 
   const handleConfirmAppointment = async () => {
-  if (!selectedBarber) return toast.error("Selecione um barbeiro.");
-  if (!selectedDate) return toast.error("Escolha uma data.");
-  if (!selectedTime) return toast.error("Escolha um horário.");
-  if (!clientName || clientName.trim().length < 2)
-    return toast.error("Informe seu nome completo.");
-  setLoading(true);
+    if (!selectedBarber) return toast.error("Selecione um barbeiro.");
+    if (!selectedDate) return toast.error("Escolha uma data.");
+    if (!selectedTime) return toast.error("Escolha um horário.");
+    if (!clientName || clientName.trim().length < 2)
+      return toast.error("Informe seu nome completo.");
+    setLoading(true);
 
-  try {
-    // Hora precisa ser no formato 'HH:MM:SS'
-    const horaParaRpc = `${selectedTime.length === 5 ? selectedTime + ':00' : selectedTime}`;
+    try {
+      // Hora precisa ser no formato 'HH:MM:SS'
+      const horaParaRpc = `${selectedTime.length === 5 ? selectedTime + ':00' : selectedTime}`;
 
-    // Aqui faz o agendamento no Supabase
-    const { data, error } = await supabase.rpc('book_slot', {
-      _barbeiro_id: Number(selectedBarber.id),
-      _data: selectedDate,           // formato YYYY-MM-DD
-      _hora: horaParaRpc,            // formato HH:MM:SS
-      _cliente_nome: clientName.trim()
-    });
+      // Aqui faz o agendamento no Supabase
+      const { data, error } = await supabase.rpc('book_slot', {
+        _barbeiro_id: Number(selectedBarber.id),
+        _data: selectedDate,           // formato YYYY-MM-DD
+        _hora: horaParaRpc,            // formato HH:MM:SS
+        _cliente_nome: clientName.trim()
+      });
 
-    // Caso haja erro técnico do Supabase
-    if (error) {
-      toast.error("Erro ao agendar: " + (error.message || error));
-      setLoading(false);
-      return;
+      // Caso haja erro técnico do Supabase
+      if (error) {
+        toast.error("Erro ao agendar: " + (error.message || error));
+        setLoading(false);
+        return;
+      }
+
+      // Caso a função do Supabase retorne falso (não atualizou slot)
+      if (!data) {
+        toast.error("Horário não pôde ser agendado. Tente outro horário.");
+        setLoading(false);
+        return;
+      }
+
+      // Agendamento OK: monta mensagem e abre WhatsApp
+      const numero = (selectedBarber.telefone || "").replace(/\D/g, "");
+      const numeroMsg = numero.startsWith("55") ? numero : `55${numero}`;
+      const servicos = selectedServices.map((s) => s.nome).join(", ");
+      const valorFinal = calculateTotal().toFixed(2);
+      const dataFormatada = new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR");
+
+      const msg = `Olá! 👋 Tudo bem?\n\nEstou confirmando o agendamento para o dia *${dataFormatada}* às *${selectedTime}* com o barbeiro *${selectedBarber.nome}*.\n\n💈 *Serviços solicitados:*\n${servicos}\n\n💰 *Valor total:* R$ ${valorFinal}\n\nAguardo a confirmação! 😊`;
+
+      const url = `https://wa.me/${numeroMsg}?text=${encodeURIComponent(msg)}`;
+      toast.success("Agendamento confirmado! Redirecionando para o WhatsApp...");
+      setTimeout(() => {
+        window.location.href = url;
+      }, 1300);
+    } catch (err) {
+      toast.error("Erro ao agendar (catch).");
     }
-
-    // Caso a função do Supabase retorne falso (não atualizou slot)
-    if (!data) {
-      toast.error("Horário não pôde ser agendado. Tente outro horário.");
-      setLoading(false);
-      return;
-    }
-
-    // Agendamento OK: monta mensagem e abre WhatsApp
-    const numero = (selectedBarber.telefone || "").replace(/\D/g, "");
-    const numeroMsg = numero.startsWith("55") ? numero : `55${numero}`;
-    const servicos = selectedServices.map((s) => s.nome).join(", ");
-    const valorFinal = calculateTotal().toFixed(2);
-    const dataFormatada = new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR");
-
-    const msg = `Olá! 👋 Tudo bem?\n\nEstou confirmando o agendamento para o dia *${dataFormatada}* às *${selectedTime}* com o barbeiro *${selectedBarber.nome}*.\n\n💈 *Serviços solicitados:*\n${servicos}\n\n💰 *Valor total:* R$ ${valorFinal}\n\nAguardo a confirmação! 😊`;
-
-    const url = `https://wa.me/${numeroMsg}?text=${encodeURIComponent(msg)}`;
-    toast.success("Agendamento confirmado! Redirecionando para o WhatsApp...");
-    setTimeout(() => {
-      window.location.href = url;
-    }, 1300);
-  } catch (err) {
-    toast.error("Erro ao agendar (catch).");
-  }
-  setLoading(false);
-};
-
+    setLoading(false);
+  };
 
   // ✅ HOME COM LOGO CORRIGIDA
-    const renderHome = () => (
+  const renderHome = () => (
     <div
       className="relative min-h-screen flex flex-col justify-center items-center text-center overflow-hidden"
       style={{
@@ -289,52 +284,75 @@ setAvailableTimes(horariosDisponiveis.map((t) => ({
 
       {/* ✅ Conteúdo principal (acima de tudo) */}
       <div className="relative z-10 flex flex-col items-center p-6 max-w-md w-full">
-       {/* ✅ LOGOMARCA CENTRALIZADA */}
-<div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
-  <img
-    src="/logo.png"
-    alt="Logotipo NewEra Barbershop"
-    style={{
-      maxWidth: 380,           // Aumente o valor (em px) para desktops
-      minWidth: 120,           // Define um tamanho mínimo para mobile bem pequeno
-      width: "75%",            // Deixa responsivo (75% do container no mobile)
-      height: "auto",
-      display: "block"
-    }}
-  />
-</div>
+        {/* ✅ LOGOMARCA CENTRALIZADA */}
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+          <img
+            src="/logo.png"
+            alt="Logotipo NewEra Barbershop"
+            style={{
+              maxWidth: 380,           // Aumente o valor (em px) para desktops
+              minWidth: 120,           // Define um tamanho mínimo para mobile bem pequeno
+              width: "75%",            // Deixa responsivo (75% do container no mobile)
+              height: "auto",
+              display: "block"
+            }}
+          />
+        </div>
 
-<p
-  className="font-light mb-8"
-  style={{
-    color: "#fff",
-    fontSize: "1.8rem",
-    fontWeight: 700,
-    fontFamily: "'Poppins', Arial, sans-serif",
-    letterSpacing: "0.01em",
-    textShadow: "0 1px 3px #0005",
-    whiteSpace: "nowrap"  // <-- Isso força tudo em uma linha só
-  }}
+        <p
+          className="font-light mb-8"
+          style={{
+            color: "#fff",
+            fontSize: "1.8rem",
+            fontWeight: 700,
+            fontFamily: "'Poppins', Arial, sans-serif",
+            letterSpacing: "0.01em",
+            textShadow: "0 1px 3px #0005",
+            whiteSpace: "nowrap"  // <-- Isso força tudo em uma linha só
+          }}
+        >
+          Corte - Atitude - Respeito
+        </p>
+
+   <button
+  onClick={() => setView("services")}
+  className="button button-primary mb-3 w-full text-lg py-4 shadow-2xl hover:shadow-amber-500/50 hover:scale-105 transition-all"
 >
-  Corte - Atitude - Respeito
-</p>
+  <FaCut className="mr-2" /> Agendar Horário
+</button>
 
+<button
+  onClick={() => setView("adminLogin")}
+  className="button button-outline w-full text-sm py-3 hover:scale-105 transition-all mb-4"
+>
+  <FaSignInAlt className="mr-2" /> Área Administrativa
+</button>
 
-
-
-        <button
-          onClick={() => setView("services")}
-          className="button button-primary mb-4 w-full text-lg py-4 shadow-2xl hover:shadow-amber-500/50 hover:scale-105 transition-all"
-        >
-          <FaCut className="mr-2" /> Agendar Horário
-        </button>
-        
-        <button
-          onClick={() => setView("adminLogin")}
-          className="button button-outline w-full text-sm py-3 hover:scale-105 transition-all"
-        >
-          <FaSignInAlt className="mr-2" /> Área Administrativa
-        </button>
+<a
+  href="https://www.google.com/maps?q=Av.+Colombo+Machado+Sales,+660,+sala+03"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="mb-2 flex items-center justify-center gap-2 text-sm sm:text-base text-zinc-200 hover:text-amber-400 transition-colors"
+>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="1.8"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 21s6-5.373 6-10a6 6 0 10-12 0c0 4.627 6 10 6 10z"
+    />
+    <circle cx="12" cy="11" r="2.5" />
+  </svg>
+  <span className="underline underline-offset-2 text-center">
+    Av. Colombo Machado Sales, 660 sala 03
+  </span>
+</a>
       </div>
     </div>
   );
@@ -469,13 +487,13 @@ setAvailableTimes(horariosDisponiveis.map((t) => ({
       )}
       
       <div className="w-full max-w-md mb-6">
-        <label className="block text-sm font-semibold mb-2 text-amber-400">👤 Seu Nome Completo:</label>
+        <label className="block text-sm font-semibold mb-2 text-amber-400">👤 Seu Nome e Sobrenome:</label>
         <input
           type="text"
           className="input w-full text-base"
           value={clientName}
           onChange={(e) => setClientName(e.target.value)}
-          placeholder="Digite seu nome completo"
+          placeholder="Digite seu nome"
         />
       </div>
       
