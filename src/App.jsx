@@ -285,14 +285,14 @@ export default function App() {
       {/* ✅ Conteúdo principal (acima de tudo) */}
       <div className="relative z-10 flex flex-col items-center p-6 max-w-md w-full">
         {/* ✅ LOGOMARCA CENTRALIZADA */}
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
           <img
             src="/logo.png"
             alt="Logotipo NewEra Barbershop"
             style={{
               maxWidth: 380,           // Aumente o valor (em px) para desktops
               minWidth: 120,           // Define um tamanho mínimo para mobile bem pequeno
-              width: "75%",            // Deixa responsivo (75% do container no mobile)
+              width: "85%",            // Deixa responsivo (75% do container no mobile)
               height: "auto",
               display: "block"
             }}
