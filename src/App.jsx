@@ -381,234 +381,233 @@ export default function App() {
     </div>
   );
 
-  // 🎨 SERVIÇOS - PRETO + DOURADO (TOTALMENTE REFORMULADO)
-  const renderServices = () => (
-    <div className="min-h-screen p-4 sm:p-6 text-white"
-      style={{
-        background: `linear-gradient(135deg, ${COLORS.BLACK} 0%, ${COLORS.DARK_GRAY} 100%)`,
-      }}>
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <button
-          onClick={() => setView("home")}
-          className="mb-12 font-semibold transition-all flex items-center gap-2 hover:gap-3"
-          style={{ color: COLORS.GOLD }}
-        >
-          ← Voltar
-        </button>
+ // 🎨 SERVIÇOS - PRETO + DOURADO (TOTALMENTE REFORMULADO)
+const renderServices = () => (
+  <div className="min-h-screen p-4 sm:p-6 text-white"
+    style={{
+      background: `linear-gradient(135deg, ${COLORS.BLACK} 0%, ${COLORS.DARK_GRAY} 100%)`,
+    }}>
+    <div className="max-w-6xl mx-auto">
+      {/* Header */}
+      <button
+        onClick={() => setView("home")}
+        className="mb-12 font-semibold transition-all flex items-center gap-2 hover:gap-3"
+        style={{ color: COLORS.GOLD }}
+      >
+        ← Voltar
+      </button>
 
-        <div className="text-center mb-16">
-          <h1 className="text-5xl sm:text-6xl font-black mb-4" style={{ color: COLORS.WHITE }}>
-            Customize Seu Corte
-          </h1>
-          <p className="text-lg text-gray-300" style={{ maxWidth: "600px", margin: "0 auto" }}>
-            Escolha seu barbeiro e os serviços que deseja. Crie a experiência perfeita para você.
-          </p>
-        </div>
-
-        {/* BARBEIROS */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-black mb-6" style={{ color: COLORS.GOLD }}>
-            🎯 Escolha seu Barbeiro
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {barbers.map((barber) => (
-              <button
-                key={barber.id}
-                onClick={() => setSelectedBarber(barber)}
-                className="group p-8 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 border-2 relative overflow-hidden"
-                style={{
-                  backgroundColor: selectedBarber?.id === barber.id ? COLORS.GOLD : COLORS.LIGHT_GRAY,
-                  color: selectedBarber?.id === barber.id ? COLORS.BLACK : COLORS.WHITE,
-                  borderColor: selectedBarber?.id === barber.id ? COLORS.GOLD : "transparent",
-                  boxShadow: selectedBarber?.id === barber.id ? `0 15px 40px -10px rgba(212, 175, 55, 0.5)` : `0 10px 30px -10px rgba(0,0,0,0.4)`,
-                }}
-              >
-                <div className="flex items-center justify-center gap-3 text-lg">
-                  <FaUserCircle className="text-2xl" />
-                  {barber.nome}
-                </div>
-                {selectedBarber?.id === barber.id && (
-                  <div className="absolute top-2 right-2" style={{ color: COLORS.BLACK }}>
-                    ✓
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* SERVIÇOS */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-black mb-6" style={{ color: COLORS.GOLD }}>
-            ✨ Selecione seus Serviços
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {services.map((service) => {
-              const selected = selectedServices.some((s) => s.id === service.id);
-              return (
-                <button
-                  key={service.id}
-                  onClick={() => handleServiceSelect(service)}
-                  className="group p-6 rounded-xl transition-all duration-300 transform hover:scale-105 border-2 text-left relative overflow-hidden"
-                  style={{
-                    backgroundColor: selected ? COLORS.GOLD : COLORS.LIGHT_GRAY,
-                    color: selected ? COLORS.BLACK : COLORS.WHITE,
-                    borderColor: selected ? COLORS.GOLD : "transparent",
-                    boxShadow: selected ? `0 15px 40px -10px rgba(212, 175, 55, 0.5)` : `0 10px 30px -10px rgba(0,0,0,0.4)`,
-                  }}
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h3 className="font-bold text-lg">{service.nome}</h3>
-                    </div>
-                    <div 
-                      className="text-2xl transition-transform"
-                      style={{
-                        color: selected ? COLORS.BLACK : COLORS.GOLD,
-                        transform: selected ? "scale(1.2)" : "scale(1)",
-                      }}
-                    >
-                      {selected ? "✓" : "○"}
-                    </div>
-                  </div>
-                  <p className="text-sm opacity-75 mb-2"> </p>
-                  <p className="text-2xl font-black" style={{ color: selected ? COLORS.BLACK : COLORS.GOLD }}>
-                    R$ {Number(service.preco ?? service.price ?? 0).toFixed(2)}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* DATA, HORA, NOME */}
-        {selectedBarber && (
-          <div className="mb-16 p-8 rounded-xl" style={{
-            backgroundColor: COLORS.LIGHT_GRAY,
-            border: `2px solid ${COLORS.GOLD}`,
-            boxShadow: `0 20px 50px -10px rgba(212, 175, 55, 0.2)`,
-          }}>
-            <h2 className="text-3xl font-black mb-8" style={{ color: COLORS.GOLD }}>
-              📅 Finalize sua Reserva
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-              {/* Data */}
-              <div>
-                <label className="block font-bold mb-3 text-lg" style={{ color: COLORS.GOLD }}>
-                  Data do Agendamento
-                </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full p-4 rounded-lg text-lg font-semibold transition-all"
-                  style={{
-                    backgroundColor: COLORS.BLACK,
-                    border: `2px solid ${COLORS.GOLD}`,
-                    color: COLORS.WHITE,
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.boxShadow = `0 0 15px rgba(212, 175, 55, 0.3)`;
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.boxShadow = "none";
-                  }}
-                />
-              </div>
-
-              {/* Nome */}
-              <div>
-                <label className="block font-bold mb-3 text-lg" style={{ color: COLORS.GOLD }}>
-                  Seu Nome Completo
-                </label>
-                <input
-                  type="text"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  placeholder="Ex: João Silva"
-                  className="w-full p-4 rounded-lg text-lg font-semibold transition-all"
-                  style={{
-                    backgroundColor: COLORS.BLACK,
-                    border: `2px solid ${COLORS.GOLD}`,
-                    color: COLORS.WHITE,
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.boxShadow = `0 0 15px rgba(212, 175, 55, 0.3)`;
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.boxShadow = "none";
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Horários */}
-            {selectedDate && (
-              <div>
-                <label className="block font-bold mb-4 text-lg" style={{ color: COLORS.GOLD }}>
-                  🕐 Horários Disponíveis
-                </label>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                  {availableTimes.map((slot) => (
-                    <button
-                      key={slot.time}
-                      onClick={() => setSelectedTime(slot.time)}
-                      disabled={slot.ocupado}
-                      className="p-4 rounded-lg font-bold transition-all transform hover:scale-110"
-                      style={{
-                        backgroundColor: slot.ocupado ? "#3a2a2a" : selectedTime === slot.time ? COLORS.GOLD : COLORS.BLACK,
-                        color: slot.ocupado ? "#888" : selectedTime === slot.time ? COLORS.BLACK : COLORS.GOLD,
-                        border: `2px solid ${slot.ocupado ? "#5a4a4a" : selectedTime === slot.time ? COLORS.GOLD : COLORS.GOLD}`,
-                        cursor: slot.ocupado ? "not-allowed" : "pointer",
-                        opacity: slot.ocupado ? 0.4 : 1,
-                        boxShadow: selectedTime === slot.time ? `0 10px 20px -5px rgba(212, 175, 55, 0.4)` : "none",
-                      }}
-                    >
-                      {slot.time.slice(0, 5)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TOTAL E CONFIRMAR */}
-        {selectedServices.length > 0 && (
-          <div className="sticky bottom-0 left-0 right-0 p-6 rounded-t-2xl" style={{
-            backgroundColor: COLORS.BLACK,
-            border: `2px solid ${COLORS.GOLD}`,
-            boxShadow: `0 -10px 40px -5px rgba(212, 175, 55, 0.3)`,
-          }}>
-            <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-              <div className="text-center sm:text-left">
-                <p className="text-gray-400 text-sm mb-1">Valor Total do Agendamento</p>
-                <p className="text-4xl sm:text-5xl font-black" style={{ color: COLORS.GOLD }}>
-                  R$ {calculateTotal().toFixed(2)}
-                </p>
-              </div>
-              <button
-                onClick={handleConfirmAppointment}
-                disabled={!selectedBarber || !selectedDate || !selectedTime || !clientName}
-                className="w-full sm:w-auto px-12 py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-105"
-                style={{
-                  background: `linear-gradient(to right, ${COLORS.GOLD}, #C9A961)`,
-                  color: COLORS.BLACK,
-                  opacity: !selectedBarber || !selectedDate || !selectedTime || !clientName ? 0.5 : 1,
-                  cursor: !selectedBarber || !selectedDate || !selectedTime || !clientName ? "not-allowed" : "pointer",
-                  boxShadow: `0 10px 30px -5px rgba(212, 175, 55, 0.4)`,
-                }}
-              >
-                {loading ? "Processando..." : "✓ Confirmar Agendamento"}
-              </button>
-            </div>
-          </div>
-        )}
+      <div className="text-center mb-16">
+        <h1 className="text-5xl sm:text-6xl font-black mb-4" style={{ color: COLORS.WHITE }}>
+          Customize Seu Corte
+        </h1>
+        <p className="text-lg text-gray-300" style={{ maxWidth: "600px", margin: "0 auto" }}>
+          Escolha seu barbeiro e os serviços que deseja. Crie a experiência perfeita para você.
+        </p>
       </div>
+
+      {/* BARBEIROS */}
+      <div className="mb-16">
+        <h2 className="text-3xl font-black mb-6" style={{ color: COLORS.GOLD }}>
+          🎯 Escolha seu Barbeiro
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {barbers.map((barber) => (
+            <button
+              key={barber.id}
+              onClick={() => setSelectedBarber(barber)}
+              className="group p-8 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 border-2 relative overflow-hidden"
+              style={{
+                backgroundColor: selectedBarber?.id === barber.id ? COLORS.GOLD : COLORS.LIGHT_GRAY,
+                color: selectedBarber?.id === barber.id ? COLORS.BLACK : COLORS.WHITE,
+                borderColor: selectedBarber?.id === barber.id ? COLORS.GOLD : "transparent",
+                boxShadow: selectedBarber?.id === barber.id ? `0 15px 40px -10px rgba(212, 175, 55, 0.5)` : `0 10px 30px -10px rgba(0,0,0,0.4)`,
+              }}
+            >
+              <div className="flex items-center justify-center gap-3 text-lg">
+                <FaUserCircle className="text-2xl" />
+                {barber.nome}
+              </div>
+              {selectedBarber?.id === barber.id && (
+                <div className="absolute top-2 right-2" style={{ color: COLORS.BLACK }}>
+                  ✓
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* SERVIÇOS - AGORA 2 COLUNAS NO MOBILE */}
+      <div className="mb-16">
+        <h2 className="text-3xl font-black mb-6" style={{ color: COLORS.GOLD }}>
+          ✨ Selecione seus Serviços
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 w-full max-w-6xl">
+          {services.map((service) => {
+            const selected = selectedServices.some((s) => s.id === service.id);
+            return (
+              <button
+                key={service.id}
+                onClick={() => handleServiceSelect(service)}
+                className="group p-4 sm:p-6 rounded-xl transition-all duration-300 transform hover:scale-105 border-2 text-left relative overflow-hidden"
+                style={{
+                  backgroundColor: selected ? COLORS.GOLD : COLORS.LIGHT_GRAY,
+                  color: selected ? COLORS.BLACK : COLORS.WHITE,
+                  borderColor: selected ? COLORS.GOLD : "transparent",
+                  boxShadow: selected ? `0 15px 40px -10px rgba(212, 175, 55, 0.5)` : `0 10px 30px -10px rgba(0,0,0,0.4)`,
+                }}
+              >
+                <div className="flex justify-between items-start mb-2 sm:mb-3">
+                  <div>
+                    <h3 className="font-bold text-sm sm:text-lg">{service.nome}</h3>
+                  </div>
+                  <div 
+                    className="text-xl sm:text-2xl transition-transform"
+                    style={{
+                      color: selected ? COLORS.BLACK : COLORS.GOLD,
+                      transform: selected ? "scale(1.2)" : "scale(1)",
+                    }}
+                  >
+                    {selected ? "✓" : "○"}
+                  </div>
+                </div>
+                <p className="text-lg sm:text-2xl font-black" style={{ color: selected ? COLORS.BLACK : COLORS.GOLD }}>
+                  R$ {Number(service.preco ?? service.price ?? 0).toFixed(2)}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* DATA, HORA, NOME */}
+      {selectedBarber && (
+        <div className="mb-16 p-6 sm:p-8 rounded-xl" style={{
+          backgroundColor: COLORS.LIGHT_GRAY,
+          border: `2px solid ${COLORS.GOLD}`,
+          boxShadow: `0 20px 50px -10px rgba(212, 175, 55, 0.2)`,
+        }}>
+          <h2 className="text-2xl sm:text-3xl font-black mb-8" style={{ color: COLORS.GOLD }}>
+            📅 Finalize sua Reserva
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+            {/* Data */}
+            <div>
+              <label className="block font-bold mb-3 text-base sm:text-lg" style={{ color: COLORS.GOLD }}>
+                Data do Agendamento
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full p-4 rounded-lg text-lg font-semibold transition-all"
+                style={{
+                  backgroundColor: COLORS.BLACK,
+                  border: `2px solid ${COLORS.GOLD}`,
+                  color: COLORS.WHITE,
+                }}
+                onFocus={(e) => {
+                  e.target.style.boxShadow = `0 0 15px rgba(212, 175, 55, 0.3)`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.boxShadow = "none";
+                }}
+              />
+            </div>
+
+            {/* Nome */}
+            <div>
+              <label className="block font-bold mb-3 text-base sm:text-lg" style={{ color: COLORS.GOLD }}>
+                Seu Nome Completo
+              </label>
+              <input
+                type="text"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                placeholder="Ex: João Silva"
+                className="w-full p-4 rounded-lg text-lg font-semibold transition-all"
+                style={{
+                  backgroundColor: COLORS.BLACK,
+                  border: `2px solid ${COLORS.GOLD}`,
+                  color: COLORS.WHITE,
+                }}
+                onFocus={(e) => {
+                  e.target.style.boxShadow = `0 0 15px rgba(212, 175, 55, 0.3)`;
+                }}
+                onBlur={(e) => {
+                  e.target.style.boxShadow = "none";
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Horários */}
+          {selectedDate && (
+            <div>
+              <label className="block font-bold mb-4 text-base sm:text-lg" style={{ color: COLORS.GOLD }}>
+                🕐 Horários Disponíveis
+              </label>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                {availableTimes.map((slot) => (
+                  <button
+                    key={slot.time}
+                    onClick={() => setSelectedTime(slot.time)}
+                    disabled={slot.ocupado}
+                    className="p-3 sm:p-4 rounded-lg font-bold transition-all transform hover:scale-110"
+                    style={{
+                      backgroundColor: slot.ocupado ? "#3a2a2a" : selectedTime === slot.time ? COLORS.GOLD : COLORS.BLACK,
+                      color: slot.ocupado ? "#888" : selectedTime === slot.time ? COLORS.BLACK : COLORS.GOLD,
+                      border: `2px solid ${slot.ocupado ? "#5a4a4a" : selectedTime === slot.time ? COLORS.GOLD : COLORS.GOLD}`,
+                      cursor: slot.ocupado ? "not-allowed" : "pointer",
+                      opacity: slot.ocupado ? 0.4 : 1,
+                      boxShadow: selectedTime === slot.time ? `0 10px 20px -5px rgba(212, 175, 55, 0.4)` : "none",
+                    }}
+                  >
+                    {slot.time.slice(0, 5)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TOTAL E CONFIRMAR */}
+      {selectedServices.length > 0 && (
+        <div className="sticky bottom-0 left-0 right-0 p-4 sm:p-6 rounded-t-2xl" style={{
+          backgroundColor: COLORS.BLACK,
+          border: `2px solid ${COLORS.GOLD}`,
+          boxShadow: `0 -10px 40px -5px rgba(212, 175, 55, 0.3)`,
+        }}>
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
+            <div className="text-center sm:text-left">
+              <p className="text-gray-400 text-xs sm:text-sm mb-1">Valor Total do Agendamento</p>
+              <p className="text-3xl sm:text-4xl md:text-5xl font-black" style={{ color: COLORS.GOLD }}>
+                R$ {calculateTotal().toFixed(2)}
+              </p>
+            </div>
+            <button
+              onClick={handleConfirmAppointment}
+              disabled={!selectedBarber || !selectedDate || !selectedTime || !clientName}
+              className="w-full sm:w-auto px-8 sm:px-12 py-3 sm:py-4 rounded-lg font-bold text-base sm:text-lg transition-all transform hover:scale-105"
+              style={{
+                background: `linear-gradient(to right, ${COLORS.GOLD}, #C9A961)`,
+                color: COLORS.BLACK,
+                opacity: !selectedBarber || !selectedDate || !selectedTime || !clientName ? 0.5 : 1,
+                cursor: !selectedBarber || !selectedDate || !selectedTime || !clientName ? "not-allowed" : "pointer",
+                boxShadow: `0 10px 30px -5px rgba(212, 175, 55, 0.4)`,
+              }}
+            >
+              {loading ? "Processando..." : "✓ Confirmar Agendamento"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-  );
+  </div>
+);
 
   // 🔑 ADMIN LOGIN
   const renderAdminLogin = () => (
